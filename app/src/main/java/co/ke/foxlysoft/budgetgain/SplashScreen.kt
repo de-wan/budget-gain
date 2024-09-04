@@ -1,5 +1,7 @@
 package co.ke.foxlysoft.budgetgain
 
+import SettingsManager
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -12,8 +14,10 @@ import androidx.core.view.WindowInsetsCompat
 import co.ke.foxlysoft.budgetgain.databinding.ActivitySplashScreenBinding
 import co.ke.foxlysoft.budgetgain.intro.IntroActivity
 
+@SuppressLint("CustomSplashScreen")
 class SplashScreen : AppCompatActivity() {
     lateinit var binding: ActivitySplashScreenBinding
+    lateinit var settingsManager: SettingsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +30,8 @@ class SplashScreen : AppCompatActivity() {
             insets
         }
 
+        settingsManager = SettingsManager(this)
+
         val fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in)
         val scale = AnimationUtils.loadAnimation(this, R.anim.scale)
 
@@ -34,7 +40,15 @@ class SplashScreen : AppCompatActivity() {
 
         // Delay the transition to the main activity
         Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(this, IntroActivity::class.java)
+            val isFirstTime = settingsManager.get("isFirstTime") ?: "true"
+            if (isFirstTime == "true") {
+                val intent = Intent(this, IntroActivity::class.java)
+                startActivity(intent)
+                finish()
+                return@postDelayed
+            }
+
+            val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
             finish()
         }, 3000)
