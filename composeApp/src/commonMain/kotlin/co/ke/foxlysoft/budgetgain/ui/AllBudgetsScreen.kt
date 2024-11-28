@@ -39,6 +39,9 @@ fun AllBudgetsScreen(
         Text(text = "All Budgets")
         allBudgets.forEach {
             Text(text = it.name)
+            Text(text = it.budgetedAmount.toString())
+            Text(text = it.startDate)
+            Text(text = it.endDate)
             Button(onClick = {
                 allBudgetsScreenViewModel.deleteBudget(it)
             }){

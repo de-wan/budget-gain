@@ -10,11 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -32,92 +32,77 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key.Companion.Calendar
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
+import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
+import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
+import co.touchlab.kermit.Logger
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.annotation.KoinExperimentalAPI
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, KoinExperimentalAPI::class)
 @Composable
 fun CreateBudgetScreen(
     CreateBudgetScreenViewModel: CreateBudgetScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit
 ) {
     var budgetName by remember { mutableStateOf(TextFieldValue("")) }
+    var budgetNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var budgetAmount by remember { mutableStateOf(TextFieldValue("")) }
+    var budgetAmountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var startDate by remember { mutableStateOf("Select Start Date") }
+    var startDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var endDate by remember { mutableStateOf("Select End Date") }
+    var endDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var submitAttempted by remember { mutableStateOf(false) }
 
-    // Track date picker dialog visibility
-    val startDatePickerState = rememberDatePickerState()
-    val endDatePickerState = rememberDatePickerState()
-    var showStartDatePicker by remember { mutableStateOf(false) }
-    var showEndDatePicker by remember { mutableStateOf(false) }
-
-    val selectedStartDate = startDatePickerState.selectedDateMillis?.let {
-        convertMillisToDate(it)
-    } ?: ""
-    val selectedEndDate = endDatePickerState.selectedDateMillis?.let {
-        convertMillisToDate(it)
-    } ?: ""
-
-    // On Date Picker dialog result
-    val onStartDateSet: (Int, Int, Int) -> Unit = { year, month, dayOfMonth ->
-
+    fun clearErrorStatus() {
+        budgetNameErrorStatus = ErrorStatus(isError = false)
+        budgetAmountErrorStatus = ErrorStatus(isError = false)
+        endDateErrorStatus = ErrorStatus(isError = false)
     }
 
-    val onEndDateSet: (Int, Int, Int) -> Unit = { year, month, dayOfMonth ->
-
-    }
-
-    // Date picker dialog effects
-    if (showStartDatePicker) {
-        Popup(
-            onDismissRequest = { showStartDatePicker = false },
-            alignment = Alignment.TopStart
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y = 64.dp)
-                    .shadow(elevation = 4.dp)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-            ) {
-                DatePicker(
-                    state = startDatePickerState,
-                    showModeToggle = false
-                )
+    fun isFormValid(): Boolean {
+        var isValid = true
+        if (budgetName.text.isEmpty()) {
+            budgetNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Name is required")
+            isValid = false
+        }
+        if (budgetAmount.text.isEmpty()) {
+            budgetAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Amount is required")
+            isValid = false
+        } else if(budgetAmount.text.toFloatOrNull() == null) {
+            budgetAmountErrorStatus =
+                ErrorStatus(isError = true, errorMsg = "Budget Amount is invalid")
+            isValid = false
+        }
+        if (startDate.isEmpty()) {
+            startDateErrorStatus = ErrorStatus(isError = true, errorMsg = "Start Date is required")
+            isValid = false
+        }
+        if (endDate.isEmpty()) {
+            endDateErrorStatus = ErrorStatus(isError = true, errorMsg = "End Date is required")
+            isValid = false
+        }
+        // end date must be greater than start date
+        if (startDate.isNotEmpty() && endDate.isNotEmpty()) {
+            val start = LocalDate.parse(startDate)
+            val end = LocalDate.parse(endDate)
+            if (start > end) {
+                endDateErrorStatus = ErrorStatus(isError = true, errorMsg = "End Date must be greater than Start Date")
+                isValid = false
             }
         }
-    }
-
-    if (showEndDatePicker) {
-        Popup(
-            onDismissRequest = { showEndDatePicker = false },
-            alignment = Alignment.TopStart
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y = 64.dp)
-                    .shadow(elevation = 4.dp)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-            ) {
-                DatePicker(
-                    state = endDatePickerState,
-                    showModeToggle = false
-                )
-            }
-        }
+        return isValid
     }
 
     Column(
@@ -128,55 +113,60 @@ fun CreateBudgetScreen(
         Text(modifier = Modifier.padding(16.dp), text = "Create Budget Screen")
         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column {
-                OutlinedTextField(
-                    value = budgetName,
+                BGainOutlineField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    labelStr = "Budget Name",
+                    textFieldInput = budgetName,
+                    errorStatus = budgetNameErrorStatus,
                     onValueChange = { budgetName = it },
-                    label = { Text("Budget Name") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
+                    validator = {
+                        if (it.isEmpty()){
+                            budgetNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Name is required")
+                            return@BGainOutlineField
+                        }
+                        budgetNameErrorStatus = ErrorStatus(isError = false)
+                    },
+                    submitAttempted = submitAttempted
                 )
-                OutlinedTextField(
-                    value = budgetAmount,
+                BGainOutlineField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    labelStr = "Budget Amount",
+                    textFieldInput = budgetAmount,
+                    errorStatus = budgetAmountErrorStatus,
                     onValueChange = { budgetAmount = it },
-                    label = { Text("Budget Amount") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                )
-                OutlinedTextField(
-                    value = selectedStartDate,
-                    onValueChange = { },
-                    label = { Text("Start Date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showStartDatePicker = !showStartDatePicker }) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Select date"
-                            )
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    validator = {
+                        if (it.isEmpty()){
+                            budgetAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Amount is required")
+                            return@BGainOutlineField
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                )
-                OutlinedTextField(
-                    value = selectedEndDate,
-                    onValueChange = { },
-                    label = { Text("End Date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showEndDatePicker = !showEndDatePicker }) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Select date"
-                            )
+                        if (it.toFloatOrNull() == null) {
+                            budgetAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Amount is invalid")
+                            return@BGainOutlineField
                         }
+                        budgetAmountErrorStatus = ErrorStatus(isError = false)
                     },
+                    submitAttempted = submitAttempted
+                )
+                BGainOutlineField(
+                    onDateChange = { startDate = it },
+                    labelStr = "Start Date",
+                    errorStatus = startDateErrorStatus,
+                    isDatePicker = true,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
+                        .fillMaxWidth(),
+                    submitAttempted = submitAttempted
+                )
+                BGainOutlineField(
+                    onDateChange = { endDate = it },
+                    labelStr = "End Date",
+                    errorStatus = endDateErrorStatus,
+                    isDatePicker = true,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    submitAttempted = submitAttempted
                 )
                 Row(
                     modifier = Modifier
@@ -185,22 +175,30 @@ fun CreateBudgetScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(onClick = {
+                        submitAttempted = true
+                        clearErrorStatus()
+                        val isFormValid = isFormValid()
+                        Logger.d("isFormValid: $isFormValid")
+                        if (!isFormValid) {
+                            return@Button
+                        }
+
                         val budget = BudgetEntity(
                             name = budgetName.text,
                             initialBalance = budgetAmount.text.toFloat(),
-                            startDate = selectedStartDate,
-                            endDate = selectedEndDate,
+                            startDate = startDate,
+                            endDate = endDate,
                             isActive = false,
                             budgetedAmount = 0f,
                             spentAmount = 0f
                         )
-                        CreateBudgetScreenViewModel.createBudget(budget)
-                        onNavigate(Screens.AllBudgets.route)
+                        CreateBudgetScreenViewModel.createBudget(budget) { budgetId ->
+                            onNavigate(Screens.AddCategoryScreen.createRoute(budgetId))
+                        }
                     }) {
                         Text(text = "Create Budget")
                     }
                     FilledTonalButton(onClick = {
-                        showStartDatePicker = true
                     }) {
                         Text(text = "Cancel")
                     }

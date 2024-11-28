@@ -9,9 +9,10 @@ import kotlinx.coroutines.launch
 class CreateBudgetScreenViewModel(
     private val budgetRepository: BudgetRepository
 ) : ViewModel() {
-    fun createBudget(budgetEntity: BudgetEntity) {
+    fun createBudget(budgetEntity: BudgetEntity, onNavigate: (Long) -> Unit) {
         viewModelScope.launch {
-            budgetRepository.upsertBudget(budgetEntity)
+            val id = budgetRepository.upsertBudget(budgetEntity)
+            onNavigate(id)
         }
     }
 }

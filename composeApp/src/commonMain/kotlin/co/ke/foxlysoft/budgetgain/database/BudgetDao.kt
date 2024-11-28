@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BudgetDao {
     @Upsert
-    suspend fun upsert(budgetEntity: BudgetEntity)
+    suspend fun upsert(budgetEntity: BudgetEntity):Long
 
     @Delete
     suspend fun delete(budgetEntity: BudgetEntity)

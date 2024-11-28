@@ -59,6 +59,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.composeVM)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.kermit)
         }
         iosMain.dependencies {
         }
