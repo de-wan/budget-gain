@@ -17,4 +17,14 @@ interface BudgetDao {
 
     @Query("SELECT * FROM BudgetEntity")
     fun getAll(): Flow<List<BudgetEntity>>
+
+    @Query("SELECT * FROM BudgetEntity WHERE isActive = 1")
+    fun getCurrentBudget(): Flow<BudgetEntity?>
+
+    @Query("SELECT * FROM BudgetEntity WHERE id = :budgetId")
+    fun getBudget(budgetId: Long): BudgetEntity
+
+    // count number of budgets
+    @Query("SELECT COUNT(1) FROM BudgetEntity")
+    suspend fun countBudgets(): Int
 }
