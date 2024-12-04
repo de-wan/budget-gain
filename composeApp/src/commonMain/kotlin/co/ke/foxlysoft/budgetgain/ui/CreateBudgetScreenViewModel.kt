@@ -9,10 +9,13 @@ import kotlinx.coroutines.launch
 class CreateBudgetScreenViewModel(
     private val budgetRepository: BudgetRepository
 ) : ViewModel() {
-    fun createBudget(budgetEntity: BudgetEntity, onNavigate: (Long) -> Unit) {
+    fun createBudget(budgetEntity: BudgetEntity) {
         viewModelScope.launch {
-            val id = budgetRepository.upsertBudget(budgetEntity)
-            onNavigate(id)
+            val budgetsCount = budgetRepository.countBudgets()
+            if (budgetsCount == 0) {
+                budgetEntity.isActive = true
+            }
+            budgetRepository.upsertBudget(budgetEntity)
         }
     }
 }
