@@ -26,6 +26,7 @@ fun initKoin(config: KoinAppDeclaration? = null) =
             platformModule(),
             provideSettingsRepository,
             provideBudgetRepository,
+            provideCategoryRepository,
             viewModelModule,
         )
     }
