@@ -3,7 +3,6 @@ package co.ke.foxlysoft.budgetgain.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
@@ -27,14 +26,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.ic_visibility
-import co.ke.foxlysoft.budgetgain.ui.convertMillisToDate
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
+import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
 import org.jetbrains.compose.resources.painterResource
 
 
@@ -52,7 +50,7 @@ fun BGainOutlineField(
     leadingIcon: @Composable() (() -> Unit)? = null,
     trailingIcon: @Composable() (() -> Unit)? = null,
     onValueChange: ((TextFieldValue) -> Unit)? = null,
-    onDateChange: ((String) -> Unit)? = null,
+    onDateChange: ((Long) -> Unit)? = null,
     validator: ((String) -> Unit)? = null,
     submitAttempted: Boolean = false,
 ) {
@@ -62,13 +60,12 @@ fun BGainOutlineField(
 
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
-    val selectedStartDate = datePickerState.selectedDateMillis?.let {
+    val selectedDateStr = datePickerState.selectedDateMillis?.let {
         showDatePicker = false
-        val dateStr = convertMillisToDate(it)
         if (onDateChange != null) {
-            onDateChange(dateStr)
+            onDateChange(it)
         }
-        dateStr
+        dateMillisToString(it)
     } ?: ""
 
     // shared
@@ -103,7 +100,7 @@ fun BGainOutlineField(
         }
 
         OutlinedTextField(
-            value = selectedStartDate,
+            value = selectedDateStr,
             onValueChange = { },
             label = bGainlabel,
             modifier = modifier,
@@ -180,49 +177,4 @@ fun BGainOutlineField(
             },
         )
     }
-
-
-//    OutlinedTextField(
-//        modifier = modifier,
-//        value = fieldInput.value,
-//        onValueChange = {
-//            onValueChange(it)
-//        },
-//        label = {
-//            Text(text = label, style = MaterialTheme.typography.bodyMedium)
-//        },
-//        singleLine = true,
-//        keyboardOptions = keyboardOptions,
-//        keyboardActions = keyboardActions,
-//        leadingIcon = leadingIcon,
-//        isError = fieldInput.hasInteracted && errorStatus.isError,
-//        supportingText = {
-//            if (fieldInput.hasInteracted && errorStatus.isError) {
-//                errorStatus.errorMsg?.let {
-//                    Text(
-//                        text = it.asString(), modifier = Modifier.fillMaxWidth(),
-//                        style = MaterialTheme.typography.bodySmall
-//                    )
-//                }
-//            }
-//        },
-//        trailingIcon = if (isPasswordField) {
-//            {
-//                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-//                    Icon(
-//                        painter = if (passwordVisible) painterResource(R.drawable.ic_visibility)
-//                        else painterResource(R.drawable.ic_visibility_off),
-//                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
-//                    )
-//                }
-//            }
-//        } else if (fieldInput.hasInteracted && errorStatus.isError) {
-//            {
-//                Icon(imageVector = Icons.Filled.Info, contentDescription = null)
-//            }
-//        } else {
-//            null
-//        },
-//        visualTransformation = if (isPasswordField && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None
-//    )
 }
