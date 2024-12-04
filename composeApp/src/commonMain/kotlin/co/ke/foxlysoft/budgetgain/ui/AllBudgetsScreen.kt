@@ -12,6 +12,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import co.ke.foxlysoft.budgetgain.navigation.Screens
+import co.ke.foxlysoft.budgetgain.utils.centsToString
+import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
@@ -31,7 +34,7 @@ fun AllBudgetsScreen(
     ) {
         Row(){
             Button(onClick = {
-
+                onNavigate(Screens.CreateBudgetScreen.route)
             }) {
                 Text(text = "Create Budget")
             }
@@ -39,9 +42,10 @@ fun AllBudgetsScreen(
         Text(text = "All Budgets")
         allBudgets.forEach {
             Text(text = it.name)
-            Text(text = it.budgetedAmount.toString())
-            Text(text = it.startDate)
-            Text(text = it.endDate)
+            Text(text = centsToString(it.budgetedAmount))
+            Text(text = dateMillisToString(it.startDate))
+            Text(text = dateMillisToString(it.endDate))
+            Text(text = "Active: ${it.isActive}")
             Button(onClick = {
                 allBudgetsScreenViewModel.deleteBudget(it)
             }){

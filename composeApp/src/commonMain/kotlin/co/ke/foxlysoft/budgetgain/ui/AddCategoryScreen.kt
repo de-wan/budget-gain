@@ -22,12 +22,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
-import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
 import co.touchlab.kermit.Logger
-import kotlinx.datetime.Clock
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
@@ -35,9 +33,8 @@ import org.koin.core.annotation.KoinExperimentalAPI
 @Composable
 fun AddCategoryScreen(
     id: Long,
-    AddCategoryScreenViewModel: AddCategoryScreenViewModel = koinViewModel(),
-    onNavigateBack: () -> Unit,
-
+    addCategoryScreenViewModel: AddCategoryScreenViewModel = koinViewModel(),
+    onNavigateBack: () -> Unit
 ) {
     var submitAttempted by remember { mutableStateOf(false) }
 
@@ -125,10 +122,10 @@ fun AddCategoryScreen(
                 }
 
 
-                AddCategoryScreenViewModel.createCategory(
+                addCategoryScreenViewModel.createCategory(
                     CategoryEntity(
                         budgetId = id,
-                        name = categoryName.toString(),
+                        name = categoryName.text,
                         amount = amountToCents(categoryAmount.text),
                         spentAmount = 0,
                     )
