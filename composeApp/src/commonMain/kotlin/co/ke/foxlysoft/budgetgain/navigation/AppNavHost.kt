@@ -56,12 +56,8 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
         ) { navBackStackEntry ->
             val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
             AddCategoryScreen(
-                onNavigate = {route ->
-                    if (route == Screens.Back.route) {
+                onNavigateBack = {
                         navHostController.popBackStack()
-                    } else {
-                        navHostController.navigate(route)
-                    }
                 },
                 id = id
             )
