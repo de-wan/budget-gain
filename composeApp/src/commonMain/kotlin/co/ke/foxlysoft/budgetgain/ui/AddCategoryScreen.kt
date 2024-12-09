@@ -120,8 +120,6 @@ fun AddCategoryScreen(
                 if (!isFormValid) {
                     return@Button
                 }
-
-
                 addCategoryScreenViewModel.createCategory(
                     CategoryEntity(
                         budgetId = id,

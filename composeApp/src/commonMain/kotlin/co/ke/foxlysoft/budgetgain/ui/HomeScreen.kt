@@ -9,21 +9,32 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import kotlinx.coroutines.CoroutineScope
@@ -114,25 +125,7 @@ fun HomeScreen(
 
                         Column {
                             budgetCategories.forEach { category ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(8.dp), // Adjust padding if needed
-                                    verticalAlignment = Alignment.CenterVertically
-                                ){
-                                    Text(
-                                        text = category.name,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                    )
-                                    IconButton(onClick = {
-                                    }) {
-                                        Icon(
-                                            imageVector = androidx.compose.material.icons.Icons.Default.Add,
-                                            contentDescription = "Spend"
-                                        )
-                                    }
-                                }
+                                CategoryItem(category)
                             }
                         }
 
@@ -141,7 +134,130 @@ fun HomeScreen(
                 }
 
 
+
+
             }
         }
     }
 }
+
+@Composable
+fun CategoryItem(category: CategoryEntity,
+                 onNavigate: (String) -> Unit = {}) {
+    // State to track the expanded state of the menu
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    val progress = (category.spentAmount / category.amount).coerceIn(0L, 1L) // Ensure the progress is between 0 and 1
+
+    // Determine the color based on progress
+    val progressColor = when {
+        progress < 0.5f -> Color.Green
+        progress < 0.8f -> Color.Yellow
+        else -> Color.Red
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp), // Adjust padding if needed
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            Text(
+                text = category.name,
+                modifier = Modifier
+                    .weight(1f)
+            )
+            Box{
+                IconButton(onClick = {
+                    menuExpanded = true
+                }) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.MoreVert,
+                        contentDescription = "Menu"
+                    )
+                }
+
+                // Dropdown menu
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(onClick = {
+//                    onNavigate(Screens.CategorySpendScreen.createRoute(category.id))
+                        menuExpanded = false
+                    },
+                        text = {
+                            Text("Spend")
+                        })
+                    DropdownMenuItem(onClick = {
+//                onNavigate(Screens.CategoryDetailsScreen.createRoute(category.id))
+                        menuExpanded = false
+                    },
+                        text = {
+                            Text("View Details")
+                        })
+                    DropdownMenuItem(onClick = {
+//                onNavigate(Screens.CategoryEditScreen.createRoute(category.id))
+                        menuExpanded = false
+                    },
+                        text = {
+                            Text("Edit")
+                        })
+                    DropdownMenuItem(onClick = {
+//                onDeleteCategory()
+                        menuExpanded = false
+                    }, text = {
+                        Text("Delete")
+                    })
+                }
+            }
+
+        }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp), // Adjust padding if needed
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                ) {
+                    Text(
+                        text = "Budgeted",
+                    )
+                    Text(
+                        text = centsToString(category.amount),
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Spent",
+                    )
+                    Text(
+                        text = centsToString(category.spentAmount),
+                    )
+                }
+                Text(
+                    text = "${progress * 100}%",
+                    color = progressColor,
+                )
+            }
+            LinearProgressIndicator(
+                progress = { progress.toFloat() },
+                color = progressColor,
+                trackColor = Color.LightGray,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+            )
+        }
+    }
