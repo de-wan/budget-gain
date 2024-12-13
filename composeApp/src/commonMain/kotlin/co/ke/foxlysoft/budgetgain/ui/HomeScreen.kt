@@ -98,7 +98,7 @@ fun HomeScreen(
                     Text(text = "Initial Balance: ${centsToString(currentBudget.initialBalance)}")
                     Row(
                     ){
-                        Text(text = "Budgeted Amount: ${currentBudget.budgetedAmount}")
+                        Text(text = "Budgeted Amount: ${centsToString(currentBudget.budgetedAmount)}")
                         Spacer(modifier = Modifier.weight(1f))
                         Text(text = "Spent Amount: ${currentBudget.spentAmount}")
                     }
