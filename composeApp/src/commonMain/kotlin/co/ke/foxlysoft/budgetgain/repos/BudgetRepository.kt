@@ -30,4 +30,10 @@ class BudgetRepository(
         curBudget.budgetedAmount += incrementBy
         upsertBudget(curBudget)
     }
+
+    suspend fun decrementBudgetedAmount(budgetId: Long, decrementBy: Long) {
+        val curBudget = budgetDao.getBudget(budgetId)
+        curBudget.budgetedAmount -= decrementBy
+        upsertBudget(curBudget)
+    }
 }

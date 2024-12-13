@@ -47,6 +47,7 @@ private val settingsRepository: SettingsRepository,
 
     suspend fun deleteCategory(category: CategoryEntity) {
         categoryRepository.deleteCategory(category)
+        budgetRepository.decrementBudgetedAmount(category.budgetId, category.amount)
     }
 
     suspend fun setToFalse() {
