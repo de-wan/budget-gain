@@ -16,4 +16,8 @@ class CategoryRepository(
     fun getBudgetCategories(budgetId: Long): Flow<List<CategoryEntity>> {
         return categoryDao.getBudgetCategories(budgetId)
     }
+
+    fun getCategory(categoryId: Long): Flow<CategoryEntity?> {
+        return categoryDao.getCategory(categoryId)
+    }
 }
