@@ -15,6 +15,8 @@ import co.ke.foxlysoft.budgetgain.ui.HomeScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreenViewModel
+import co.ke.foxlysoft.budgetgain.ui.SpendScreenViewModel
+import org.koin.compose.viewmodel.dsl.viewModel
 
 
 expect fun platformModule(): Module
@@ -52,4 +54,7 @@ val viewModelModule =
         viewModelOf(::AllBudgetsScreenViewModel)
         viewModelOf(::CreateBudgetScreenViewModel)
         viewModelOf(::AddCategoryScreenViewModel)
+        viewModel{
+            (categoryId: Long) -> SpendScreenViewModel(categoryId = categoryId, categoryRepository = get())
+        }
     }

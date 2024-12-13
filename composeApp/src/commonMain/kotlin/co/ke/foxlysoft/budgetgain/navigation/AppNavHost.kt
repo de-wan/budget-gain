@@ -11,6 +11,7 @@ import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreen
 import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreen
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreen
 import co.ke.foxlysoft.budgetgain.ui.HomeScreen
+import co.ke.foxlysoft.budgetgain.ui.SpendScreen
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostController = rememberNavController()) {
@@ -60,6 +61,23 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
                         navHostController.popBackStack()
                 },
                 id = id
+            )
+        }
+        animatedComposable(
+            Screens.SpendScreen.route,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
+        ) { navBackStackEntry ->
+            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            SpendScreen(
+                onNavigateBack = {
+                    navHostController.popBackStack()
+                },
+                categoryId = id
             )
         }
     }

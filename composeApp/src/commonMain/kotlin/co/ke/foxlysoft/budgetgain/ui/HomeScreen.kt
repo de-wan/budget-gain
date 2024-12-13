@@ -200,7 +200,7 @@ fun CategoryItem(category: CategoryEntity,
                     onDismissRequest = { menuExpanded = false }
                 ) {
                     DropdownMenuItem(onClick = {
-//                    onNavigate(Screens.CategorySpendScreen.createRoute(category.id))
+                    onNavigate(Screens.SpendScreen.createRoute(category.id))
                         menuExpanded = false
                     },
                         text = {
