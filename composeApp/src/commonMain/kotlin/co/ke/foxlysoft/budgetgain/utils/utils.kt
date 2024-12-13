@@ -285,6 +285,7 @@ fun extractReceiveSms(sms: String): MpesaSms {
         i++
     }
     // pop the last character
+    senderName.setLength(senderName.length - 1)
     mpesaSms.subjectSecondaryIdentifierType = "name"
     mpesaSms.subjectSecondaryIdentifier = senderName.toString()
 
@@ -462,6 +463,392 @@ fun extractPochiSms(sms: String): MpesaSms {
     i = costInd
 
     mpesaSms.smsType = MpesaSmsTypes.POCHI
+
+    return mpesaSms
+}
+
+fun extractTillSms(sms: String): MpesaSms {
+    // specify sms type before the final return
+    val mpesaSms = MpesaSms(
+        smsType = MpesaSmsTypes.UNKNOWN,
+        ref = "",
+        amount = 0L,
+        date = "",
+        time = "",
+        subjectPrimaryIdentifierType = "",
+        subjectPrimaryIdentifier = "",
+        subjectSecondaryIdentifierType = "",
+        subjectSecondaryIdentifier = "",
+        cost = 0L,
+        balance = 0L
+    )
+
+    var i = 0
+    // [Ref]
+    val (word, newI, ok) = extractWord(sms, i)
+    if (!ok) {
+        return mpesaSms
+    }
+    mpesaSms.ref = word
+    i = newI
+
+    // before amount
+    var x = sms.substring(i, i + 15)
+    if (x != " Confirmed. Ksh") {
+        return mpesaSms
+    }
+    i += 15
+
+    // extract amount
+    val (rawAmount, newInd, amountOk) = extractAmount(sms, i)
+    if (!amountOk) {
+        return mpesaSms
+    }
+    mpesaSms.amount = amountToCents(rawAmount)
+    i = newInd
+
+    x = sms.substring(i, i + 9)
+    if (x != " paid to ") {
+        return mpesaSms
+    }
+    i += 9
+
+    val recipientName = StringBuilder()
+    // loop until we find a digit or plus or followed by ". on "
+    while (i < sms.length && !isDigit(sms[i]) && sms[i] != '+' && !followedBy(sms, i, ". on ")) {
+        recipientName.append(sms[i])
+        i++
+    }
+    // pop the last character
+    mpesaSms.subjectPrimaryIdentifierType = "name"
+    mpesaSms.subjectPrimaryIdentifier = recipientName.toString()
+
+    x = sms.substring(i, i+5)
+    if (x != ". on ") {
+        return mpesaSms
+    }
+    i += 5
+
+    // date
+    val dateBuilder = StringBuilder()
+    while(i < sms.length && sms[i] != ' ') {
+        dateBuilder.append(sms[i])
+        i++
+    }
+    mpesaSms.date = dateBuilder.toString()
+
+    x = sms.substring(i, i+4)
+    if (x != " at ") {
+        return mpesaSms
+    }
+    i += 4
+
+    // time
+    val timeBuilder = StringBuilder()
+    while(i < sms.length && sms[i] != '.') {
+        timeBuilder.append(sms[i])
+        i++
+    }
+    mpesaSms.time = timeBuilder.toString()
+
+    x = sms.substring(i, i+26)
+    if (x != ".New M-PESA balance is Ksh") {
+        return mpesaSms
+    }
+    i += 26
+
+    // extract balance
+    val (rawBalance, balInd, balOk) = extractAmount(sms, i)
+    if (!balOk) {
+        return mpesaSms
+    }
+    mpesaSms.balance = amountToCents(rawBalance)
+    i = balInd
+
+
+    x = sms.substring(i, i + 23)
+    if (x != ". Transaction cost, Ksh") {
+        return mpesaSms
+    }
+    i += 23
+
+    // extract cost
+    val (rawCost, costInd, costOk) = extractAmount(sms, i)
+    if (!costOk) {
+        return mpesaSms
+    }
+    mpesaSms.cost = amountToCents(rawCost)
+    i = costInd
+
+    mpesaSms.smsType = MpesaSmsTypes.TILL
+
+    return mpesaSms
+}
+
+fun extractPaybillSms(sms: String): MpesaSms {
+    // specify sms type before the final return
+    val mpesaSms = MpesaSms(
+        smsType = MpesaSmsTypes.UNKNOWN,
+        ref = "",
+        amount = 0L,
+        date = "",
+        time = "",
+        subjectPrimaryIdentifierType = "",
+        subjectPrimaryIdentifier = "",
+        subjectSecondaryIdentifierType = "",
+        subjectSecondaryIdentifier = "",
+        cost = 0L,
+        balance = 0L
+    )
+
+    var i = 0
+    // [Ref]
+    val (word, newI, ok) = extractWord(sms, i)
+    if (!ok) {
+        return mpesaSms
+    }
+    mpesaSms.ref = word
+    i = newI
+
+    // before amount
+    var x = sms.substring(i, i + 15)
+    if (x != " Confirmed. Ksh") {
+        return mpesaSms
+    }
+    i += 15
+
+    // extract amount
+    val (rawAmount, newInd, amountOk) = extractAmount(sms, i)
+    if (!amountOk) {
+        return mpesaSms
+    }
+    mpesaSms.amount = amountToCents(rawAmount)
+    i = newInd
+
+    x = sms.substring(i, i + 9)
+    if (x != " sent to ") {
+        return mpesaSms
+    }
+    i += 9
+
+    val recipientName = StringBuilder()
+    // loop until we find a digit or plus or followed by ". on "
+    while (i < sms.length && !followedBy(sms, i, " for account ")) {
+        recipientName.append(sms[i])
+        i++
+    }
+    // pop the last character
+    mpesaSms.subjectPrimaryIdentifierType = "paybill"
+    mpesaSms.subjectPrimaryIdentifier = recipientName.toString()
+
+    x = sms.substring(i, i+13)
+    if (x != " for account ") {
+        return mpesaSms
+    }
+    i += 13
+
+    val recipientAccount = StringBuilder()
+    // loop until we find a digit or plus or followed by ". on "
+    while (i < sms.length && !followedBy(sms, i, " on ")) {
+        recipientAccount.append(sms[i])
+        i++
+    }
+    // pop the last character
+    mpesaSms.subjectSecondaryIdentifierType = "account"
+    mpesaSms.subjectSecondaryIdentifier = recipientAccount.toString()
+
+    x = sms.substring(i, i+4)
+    if (x != " on ") {
+        return mpesaSms
+    }
+    i += 4
+
+    // date
+    val dateBuilder = StringBuilder()
+    while(i < sms.length && sms[i] != ' ') {
+        dateBuilder.append(sms[i])
+        i++
+    }
+    mpesaSms.date = dateBuilder.toString()
+
+    x = sms.substring(i, i+4)
+    if (x != " at ") {
+        return mpesaSms
+    }
+    i += 4
+
+    // time
+    val timeBuilder = StringBuilder()
+    while(i < sms.length && !followedBy(sms, i, " New")) {
+        timeBuilder.append(sms[i])
+        i++
+    }
+    mpesaSms.time = timeBuilder.toString()
+
+    x = sms.substring(i, i+26)
+    if (x != " New M-PESA balance is Ksh") {
+        return mpesaSms
+    }
+    i += 26
+
+    // extract balance
+    val (rawBalance, balInd, balOk) = extractAmount(sms, i)
+    if (!balOk) {
+        return mpesaSms
+    }
+    mpesaSms.balance = amountToCents(rawBalance)
+    i = balInd
+
+
+    x = sms.substring(i, i + 23)
+    if (x != ". Transaction cost, Ksh") {
+        return mpesaSms
+    }
+    i += 23
+
+    // extract cost
+    val (rawCost, costInd, costOk) = extractAmount(sms, i)
+    if (!costOk) {
+        return mpesaSms
+    }
+    mpesaSms.cost = amountToCents(rawCost)
+    i = costInd
+
+    mpesaSms.smsType = MpesaSmsTypes.PAYBILL
+
+    return mpesaSms
+}
+
+fun extractWithdrawSms(sms: String): MpesaSms {
+    // specify sms type before the final return
+    val mpesaSms = MpesaSms(
+        smsType = MpesaSmsTypes.UNKNOWN,
+        ref = "",
+        amount = 0L,
+        date = "",
+        time = "",
+        subjectPrimaryIdentifierType = "",
+        subjectPrimaryIdentifier = "",
+        subjectSecondaryIdentifierType = "",
+        subjectSecondaryIdentifier = "",
+        cost = 0L,
+        balance = 0L
+    )
+
+    var i = 0
+    // [Ref]
+    val (word, newI, ok) = extractWord(sms, i)
+    if (!ok) {
+        return mpesaSms
+    }
+    mpesaSms.ref = word
+    i = newI
+
+    // before amount
+    var x = sms.substring(i, i + 14)
+    if (x != " Confirmed.on ") {
+        return mpesaSms
+    }
+    i += 14
+
+    // date
+    val dateBuilder = StringBuilder()
+    while(i < sms.length && sms[i] != ' ') {
+        dateBuilder.append(sms[i])
+        i++
+    }
+    mpesaSms.date = dateBuilder.toString()
+
+    x = sms.substring(i, i+4)
+    if (x != " at ") {
+        return mpesaSms
+    }
+    i += 4
+
+    // time
+    val timeBuilder = StringBuilder()
+    while(i < sms.length && sms[i] != 'W') {
+        timeBuilder.append(sms[i])
+        i++
+    }
+    mpesaSms.time = timeBuilder.toString()
+
+    x = sms.substring(i, i+12)
+    if (x != "Withdraw Ksh") {
+        return mpesaSms
+    }
+    i += 12
+
+    // extract amount
+    val (rawAmount, newInd, amountOk) = extractAmount(sms, i)
+    if (!amountOk) {
+        return mpesaSms
+    }
+    mpesaSms.amount = amountToCents(rawAmount)
+    i = newInd
+
+    x = sms.substring(i, i + 6)
+    if (x != " from ") {
+        return mpesaSms
+    }
+    i += 6
+
+    val recipientTill = StringBuilder()
+    // loop until we find a non-digit
+    while (i < sms.length && isDigit(sms[i])) {
+        recipientTill.append(sms[i])
+        i++
+    }
+    // pop the last character
+    mpesaSms.subjectPrimaryIdentifierType = "till"
+    mpesaSms.subjectPrimaryIdentifier = recipientTill.toString()
+
+    x = sms.substring(i, i + 3)
+    if (x != " - ") {
+        return mpesaSms
+    }
+    i += 3
+
+    val recipientName = StringBuilder()
+    // loop until we find a digit or plus or followed by ". on "
+    while (i < sms.length && !isDigit(sms[i]) && sms[i] != '+' && !followedBy(sms, i, " New")) {
+        recipientName.append(sms[i])
+        i++
+    }
+    // pop the last character
+    mpesaSms.subjectSecondaryIdentifierType = "name"
+    mpesaSms.subjectSecondaryIdentifier = recipientName.toString()
+
+    x = sms.substring(i, i+26)
+    if (x != " New M-PESA balance is Ksh") {
+        return mpesaSms
+    }
+    i += 26
+
+    // extract balance
+    val (rawBalance, balInd, balOk) = extractAmount(sms, i)
+    if (!balOk) {
+        return mpesaSms
+    }
+    mpesaSms.balance = amountToCents(rawBalance)
+    i = balInd
+
+
+    x = sms.substring(i, i + 23)
+    if (x != ". Transaction cost, Ksh") {
+        return mpesaSms
+    }
+    i += 23
+
+    // extract cost
+    val (rawCost, costInd, costOk) = extractAmount(sms, i)
+    if (!costOk) {
+        return mpesaSms
+    }
+    mpesaSms.cost = amountToCents(rawCost)
+    i = costInd
+
+    mpesaSms.smsType = MpesaSmsTypes.WITHDRAW_MONEY
 
     return mpesaSms
 }
