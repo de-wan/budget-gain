@@ -46,6 +46,8 @@ fun SpendScreen(
     var amountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var merchant by remember { mutableStateOf(TextFieldValue("")) }
     var merchantErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+    var description by remember { mutableStateOf(TextFieldValue("")) }
+    var descriptionErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var timestamp by remember { mutableStateOf("") }
     var timestampErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var submitAttempted by remember { mutableStateOf(false) }
@@ -54,6 +56,7 @@ fun SpendScreen(
         refErrorStatus = ErrorStatus(isError = false)
         amountErrorStatus = ErrorStatus(isError = false)
         merchantErrorStatus = ErrorStatus(isError = false)
+        descriptionErrorStatus = ErrorStatus(isError = false)
         timestampErrorStatus = ErrorStatus(isError = false)
     }
 
@@ -72,6 +75,10 @@ fun SpendScreen(
         }
         if (merchant.text.isEmpty()) {
             merchantErrorStatus = ErrorStatus(isError = true, errorMsg = "Merchant is required")
+            isValid = false
+        }
+        if (description.text.isEmpty()) {
+            descriptionErrorStatus = ErrorStatus(isError = true, errorMsg = "Description is required")
             isValid = false
         }
         if (timestamp.isEmpty()) {
@@ -136,6 +143,22 @@ fun SpendScreen(
                             return@BGainOutlineField
                         }
                         merchantErrorStatus = ErrorStatus(isError = false)
+                    },
+                    submitAttempted = submitAttempted
+                )
+                BGainOutlineField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    labelStr = "Description",
+                    textFieldInput = description,
+                    errorStatus = descriptionErrorStatus,
+                    onValueChange = { description = it },
+                    validator = {
+                        if (it.isEmpty()){
+                            descriptionErrorStatus = ErrorStatus(isError = true, errorMsg = "Description is required")
+                            return@BGainOutlineField
+                        }
+                        descriptionErrorStatus = ErrorStatus(isError = false)
                     },
                     submitAttempted = submitAttempted
                 )
