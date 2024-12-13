@@ -45,6 +45,10 @@ private val settingsRepository: SettingsRepository,
             )
     }
 
+    suspend fun deleteCategory(category: CategoryEntity) {
+        categoryRepository.deleteCategory(category)
+    }
+
     suspend fun setToFalse() {
         settingsRepository.setSetting("firstTime", "false")
     }

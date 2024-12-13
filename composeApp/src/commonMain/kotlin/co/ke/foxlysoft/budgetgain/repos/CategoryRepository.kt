@@ -11,6 +11,8 @@ class CategoryRepository(
 
     suspend fun upsertCategory(categoryEntity: CategoryEntity) = categoryDao.upsert(categoryEntity)
 
+    suspend fun deleteCategory(categoryEntity: CategoryEntity) = categoryDao.delete(categoryEntity)
+
     fun getBudgetCategories(budgetId: Long): Flow<List<CategoryEntity>> {
         return categoryDao.getBudgetCategories(budgetId)
     }

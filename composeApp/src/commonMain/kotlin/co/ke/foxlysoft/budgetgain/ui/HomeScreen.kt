@@ -26,12 +26,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
@@ -52,6 +55,8 @@ fun HomeScreen(
     homeScreenViewModel: HomeScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit,
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
     val firstTime = homeScreenViewModel.firstTime.collectAsState().value
     val currentBudget = homeScreenViewModel.currentBudget.collectAsState().value
 
@@ -111,7 +116,7 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "Expense Categories")
+                                Text(text = "Expense Categories", style = TextStyle(fontWeight = FontWeight.Bold))
                                 IconButton(onClick = {
                                     onNavigate(Screens.AddCategoryScreen.createRoute(currentBudget.id))
                                 }) {
@@ -125,7 +130,11 @@ fun HomeScreen(
 
                         Column {
                             budgetCategories.forEach { category ->
-                                CategoryItem(category)
+                                CategoryItem(category, onNavigate = onNavigate, onDeleteCategory = {
+                                    coroutineScope.launch {
+                                        homeScreenViewModel.deleteCategory(category)
+                                    }
+                                })
                             }
                         }
 
@@ -143,7 +152,9 @@ fun HomeScreen(
 
 @Composable
 fun CategoryItem(category: CategoryEntity,
-                 onNavigate: (String) -> Unit = {}) {
+                 onNavigate: (String) -> Unit = {},
+                 onDeleteCategory: () -> Unit = {}
+                 ) {
     // State to track the expanded state of the menu
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -164,13 +175,14 @@ fun CategoryItem(category: CategoryEntity,
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp), // Adjust padding if needed
+                .padding(horizontal = 8.dp, vertical = 2.dp), // Adjust padding if needed
             verticalAlignment = Alignment.CenterVertically
         ){
             Text(
                 text = category.name,
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(1f),
+                style = MaterialTheme.typography.bodyLarge
             )
             Box{
                 IconButton(onClick = {
@@ -209,7 +221,7 @@ fun CategoryItem(category: CategoryEntity,
                             Text("Edit")
                         })
                     DropdownMenuItem(onClick = {
-//                onDeleteCategory()
+                        onDeleteCategory()
                         menuExpanded = false
                     }, text = {
                         Text("Delete")
@@ -221,7 +233,7 @@ fun CategoryItem(category: CategoryEntity,
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp), // Adjust padding if needed
+                    .padding(horizontal = 8.dp, vertical = 2.dp), // Adjust padding if needed
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
@@ -230,6 +242,7 @@ fun CategoryItem(category: CategoryEntity,
                 ) {
                     Text(
                         text = "Budgeted",
+                        style = MaterialTheme.typography.bodySmall
                     )
                     Text(
                         text = centsToString(category.amount),
@@ -240,6 +253,7 @@ fun CategoryItem(category: CategoryEntity,
                 ) {
                     Text(
                         text = "Spent",
+                        style = MaterialTheme.typography.bodySmall
                     )
                     Text(
                         text = centsToString(category.spentAmount),
