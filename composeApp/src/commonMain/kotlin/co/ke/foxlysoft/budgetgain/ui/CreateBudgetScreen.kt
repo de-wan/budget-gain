@@ -89,7 +89,6 @@ fun CreateBudgetScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
     ) {
         Text(modifier = Modifier.padding(16.dp), text = "Create Budget Screen")
         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
