@@ -39,7 +39,10 @@ fun AppNavDrawer() {
 
     ModalNavigationDrawer(drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                modifier = Modifier.requiredWidth(250.dp),
+                drawerState = drawerState,
+            ) {
                 AppNavDrawerContent(
                     navHostController = navigationController,
                     onCloseDrawer = {
