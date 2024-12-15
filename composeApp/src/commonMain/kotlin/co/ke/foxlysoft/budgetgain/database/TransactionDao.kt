@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TransactionDao {
     @Upsert
-    fun upsert(transactionEntity: TransactionEntity)
+    suspend fun upsert(transactionEntity: TransactionEntity)
 
     @Delete
-    fun delete(transactionEntity: TransactionEntity)
+    suspend fun delete(transactionEntity: TransactionEntity)
 
     @Query("SELECT * FROM TransactionEntity WHERE categoryId = :categoryId")
     fun getCategoryTransactions(categoryId: Long): Flow<List<TransactionEntity>>

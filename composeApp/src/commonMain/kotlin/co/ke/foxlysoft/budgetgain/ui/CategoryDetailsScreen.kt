@@ -1,5 +1,6 @@
 package co.ke.foxlysoft.budgetgain.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
+import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -56,14 +60,24 @@ fun CategoryDetailsScreen(
         Text(text = "Transactions")
 
         categoryTransactions.forEach { transaction ->
-            TransactionItem(categoryDetailsScreenViewModel, transaction)
+            TransactionItem(categoryDetailsScreenViewModel, transaction, onDelete = {
+                // TODO: add a confirmation dialog
+                categoryDetailsScreenViewModel.deleteTransaction(transaction)
+            })
             Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
 
 @Composable
-fun TransactionItem(categoryDetailsScreenViewModel: CategoryDetailsScreenViewModel, transaction: TransactionEntity) {
+fun TransactionItem(
+    categoryDetailsScreenViewModel: CategoryDetailsScreenViewModel,
+    transaction: TransactionEntity,
+    onDelete: () -> Unit
+) {
+    // State to track the expanded state of the menu
+    var menuExpanded by remember { mutableStateOf(false) }
+
     var merchantAccount by remember { mutableStateOf(AccountEntity()) }
     categoryDetailsScreenViewModel.getMerchantAccount(transaction) {
         merchantAccount = it
@@ -85,11 +99,28 @@ fun TransactionItem(categoryDetailsScreenViewModel: CategoryDetailsScreenViewMod
                 Text(text = transaction.timestamp, style = TextStyle(fontSize = 12.sp))
                 Text(text = "Ksh${centsToString(transaction.amount)}", style = MaterialTheme.typography.bodyLarge)
             }
-            IconButton(onClick = {}){
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Menu"
-                )
+            Box {
+                IconButton(onClick = {
+                    menuExpanded = true
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Menu"
+                    )
+                }
+                // Dropdown menu
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(onClick = {
+                        onDelete()
+                        menuExpanded = false
+                    },
+                        text = {
+                            Text("Delete")
+                        })
+                }
             }
         }
     }

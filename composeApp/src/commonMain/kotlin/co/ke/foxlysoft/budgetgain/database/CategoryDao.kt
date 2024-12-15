@@ -18,5 +18,8 @@ interface CategoryDao {
     fun getBudgetCategories(budgetId: Long): Flow<List<CategoryEntity>>
 
     @Query("SELECT * FROM CategoryEntity WHERE id = :categoryId")
-    fun getCategory(categoryId: Long): Flow<CategoryEntity>
+    fun getCategoryFlow(categoryId: Long): Flow<CategoryEntity>
+
+    @Query("SELECT * FROM CategoryEntity WHERE id = :categoryId")
+    fun getCategory(categoryId: Long): CategoryEntity
 }

@@ -87,6 +87,7 @@ val viewModelModule =
                 categoryRepository = get(),
                 transactionRepository = get(),
                 accountRepository = get(),
+                budgetRepository = get(),
             )
         }
     }

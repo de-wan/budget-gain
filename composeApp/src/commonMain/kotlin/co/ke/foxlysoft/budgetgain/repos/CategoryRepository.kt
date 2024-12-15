@@ -3,7 +3,6 @@ package co.ke.foxlysoft.budgetgain.repos
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 
 class CategoryRepository(
     db: AppDatabase
@@ -18,7 +17,11 @@ class CategoryRepository(
         return categoryDao.getBudgetCategories(budgetId)
     }
 
-    fun getCategory(categoryId: Long): Flow<CategoryEntity> {
+    fun getCategoryFlow(categoryId: Long): Flow<CategoryEntity> {
+        return categoryDao.getCategoryFlow(categoryId)
+    }
+
+    fun getCategory(categoryId: Long): CategoryEntity {
         return categoryDao.getCategory(categoryId)
     }
 }

@@ -8,5 +8,7 @@ class TransactionRepository(db: AppDatabase) {
 
     suspend fun upsertTransaction(transactionEntity: TransactionEntity) = transactionDao.upsert(transactionEntity)
 
+    suspend fun deleteTransaction(transactionEntity: TransactionEntity) = transactionDao.delete(transactionEntity)
+
     fun getCategoryTransactions(categoryId: Long) = transactionDao.getCategoryTransactions(categoryId)
 }

@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Transaction
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.AccountType
-import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import co.ke.foxlysoft.budgetgain.repos.AccountRepository
@@ -28,7 +27,7 @@ class SpendScreenViewModel(
     private val budgetRepository: BudgetRepository,
     private val transactionRepository: TransactionRepository
 ): ViewModel() {
-    val currentCategory: StateFlow<CategoryEntity?> = categoryRepository.getCategory(categoryId)
+    val currentCategory: StateFlow<CategoryEntity?> = categoryRepository.getCategoryFlow(categoryId)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
