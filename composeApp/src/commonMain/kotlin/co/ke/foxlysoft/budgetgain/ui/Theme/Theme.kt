@@ -14,7 +14,7 @@ private val DarkColorScheme = darkColorScheme(
     tertiary = LightBlue500,
     onTertiary = LightBlue50,
     surface = Black,
-    onSurface = Purple200,
+    onSurface = Purple100,
     background = Black,
     onBackground = Purple50,
 )
