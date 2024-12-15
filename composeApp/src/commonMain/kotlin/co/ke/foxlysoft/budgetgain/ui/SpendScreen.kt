@@ -17,16 +17,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.ic_attach_file
+import co.ke.foxlysoft.budgetgain.shared.ToastManager
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
+import co.ke.foxlysoft.budgetgain.utils.amountToCents
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.parameter.parametersOf
@@ -38,6 +43,8 @@ fun SpendScreen(
     spendScreenViewModel: SpendScreenViewModel = koinViewModel(parameters = { parametersOf(categoryId) }),
     onNavigateBack: () -> Unit
 ) {
+    val toastManager = koinInject<ToastManager>()
+    var scope = rememberCoroutineScope()
     val category = spendScreenViewModel.currentCategory.collectAsState().value
 
     var ref by remember { mutableStateOf(TextFieldValue("")) }
@@ -202,6 +209,25 @@ fun SpendScreen(
                         if (!isFormValid) {
                             return@Button
                         }
+                        try {
+                            spendScreenViewModel.spend(
+                                onComplete = {
+//                                    onNavigateBack()
+                                },
+                                onError = {
+//                                    toastManager.showToast("Error")
+                                },
+                                ref.text,
+                                merchant.text,
+                                description.text,
+                                amountToCents(amount.text),
+                                timestamp
+                            )
+                        } catch (e: Exception) {
+                            Logger.e("Error spending", e)
+                        }
+
+                        onNavigateBack()
                     }){
                         Text(text = "Spend")
                     }

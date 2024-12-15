@@ -10,6 +10,6 @@ data class CategoryEntity(
     val budgetId: Long,
     val name: String,
     val amount: Long,   // amount in cents
-    val spentAmount: Long,   // amount in cents
+    var spentAmount: Long,   // amount in cents
     val createdAt: Long = Clock.System.now().epochSeconds,
 )

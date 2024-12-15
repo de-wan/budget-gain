@@ -3,6 +3,7 @@ package co.ke.foxlysoft.budgetgain.ui
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Build
@@ -22,6 +23,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -105,14 +107,14 @@ fun AppNavDrawerContent(modifier: Modifier = Modifier, onCloseDrawer: () -> Unit
             navHostController.navigate(Screens.AllBudgets.route)
         }
     )
-    Spacer(modifier = Modifier.height(8.dp))
-    NavigationDrawerItem(
-        label = {
-            Text(text = "Recurring Transactions", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
-        },
-        selected = false,
-        onClick = { /*TODO*/ }
-    )
+//    Spacer(modifier = Modifier.height(8.dp))
+//    NavigationDrawerItem(
+//        label = {
+//            Text(text = "Recurring Transactions", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
+//        },
+//        selected = false,
+//        onClick = { /*TODO*/ }
+//    )
     Spacer(modifier = Modifier.height(8.dp))
     NavigationDrawerItem(
         label = {

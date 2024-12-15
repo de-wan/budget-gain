@@ -27,6 +27,10 @@ fun dateMillisToString(millis: Long): String {
     return Instant.fromEpochMilliseconds(epochMilliseconds = millis).toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 }
 
+fun timeMillisToString(millis: Long): String {
+    return Instant.fromEpochMilliseconds(epochMilliseconds = millis).toLocalDateTime(TimeZone.currentSystemDefault()).time.toString()
+}
+
 fun amountToCents(amount: String): Long {
     // Split the string into whole and fractional parts
     val parts = amount.split(".")

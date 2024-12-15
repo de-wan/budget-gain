@@ -112,18 +112,18 @@ fun CreateBudgetScreen(
                 BGainOutlineField(
                     modifier = Modifier
                         .fillMaxWidth(),
-                    labelStr = "Budget Amount",
+                    labelStr = "Initial Amount",
                     textFieldInput = budgetAmount,
                     errorStatus = budgetAmountErrorStatus,
                     onValueChange = { budgetAmount = it },
                     keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                     validator = {
                         if (it.isEmpty()){
-                            budgetAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Amount is required")
+                            budgetAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Initial Amount is required")
                             return@BGainOutlineField
                         }
                         if (it.toFloatOrNull() == null) {
-                            budgetAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Amount is invalid")
+                            budgetAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Initial Amount is invalid")
                             return@BGainOutlineField
                         }
                         budgetAmountErrorStatus = ErrorStatus(isError = false)

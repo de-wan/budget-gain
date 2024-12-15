@@ -11,7 +11,7 @@ data class BudgetEntity(
     var isActive: Boolean = false,
     val initialBalance: Long = 0,   // amount in cents
     var budgetedAmount: Long = 0,   // amount in cents
-    val spentAmount: Long = 0,   // amount in cents
+    var spentAmount: Long = 0,   // amount in cents
     val startDate: Long = 0,
     val endDate: Long = 0,
     val createdAt: Long = Clock.System.now().epochSeconds,

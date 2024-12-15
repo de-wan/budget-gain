@@ -3,6 +3,7 @@ package co.ke.foxlysoft.budgetgain.repos
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 class CategoryRepository(
     db: AppDatabase

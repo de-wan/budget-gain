@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 //import androidx.room.RoomDatabaseConstructor
 
 @Database(entities = [UserEntity::class, SettingsEntity::class, BudgetEntity::class, CategoryEntity::class,
-    AccountEntity::class, TransactionEntity::class], version = 5)
+    AccountEntity::class, TransactionEntity::class], version = 11)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun userDao(): UserDao

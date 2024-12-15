@@ -6,21 +6,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +45,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
+import co.ke.foxlysoft.budgetgain.ui.Theme.Green800
+import co.ke.foxlysoft.budgetgain.ui.Theme.Green500
+import co.ke.foxlysoft.budgetgain.ui.Theme.Green700
+import co.ke.foxlysoft.budgetgain.ui.Theme.Green900
+import co.ke.foxlysoft.budgetgain.ui.Theme.GreenA700
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +79,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        if (currentBudget.name.isEmpty()) {
+        if (currentBudget.id == 0L) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxSize()
@@ -95,33 +106,52 @@ fun HomeScreen(
                         fontSize = 18.sp,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
+
                     Text(text = "Initial Balance: ${centsToString(currentBudget.initialBalance)}")
+
                     Row(
+                        verticalAlignment = Alignment.CenterVertically
                     ){
-                        Text(text = "Budgeted Amount: ${centsToString(currentBudget.budgetedAmount)}")
+                        Column {
+                            Text(text = "Budgeted Amount:")
+                            Text(text = centsToString(currentBudget.budgetedAmount))
+                        }
                         Spacer(modifier = Modifier.weight(1f))
-                        Text(text = "Spent Amount: ${currentBudget.spentAmount}")
+                        VerticalDivider(
+                            modifier = Modifier.height(30.dp)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Column {
+                            Text(text = "Spent Amount:")
+                            Text(text = centsToString(currentBudget.spentAmount))
+                        }
                     }
+
+                    HorizontalDivider()
+
                     Column(
                         modifier = Modifier.fillMaxWidth()
-                            .background(Color.White)
-                            .shadow(1.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        Box {
                             Row(
                                 modifier = Modifier.fillMaxWidth()
                                     .padding(8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "Expense Categories", style = TextStyle(fontWeight = FontWeight.Bold))
+                                Text(
+                                    text = "Expense Categories",
+                                    style = TextStyle(fontWeight = FontWeight.Bold)
+                                )
                                 IconButton(onClick = {
-                                    onNavigate(Screens.AddCategoryScreen.createRoute(currentBudget.id))
+                                    onNavigate(
+                                        Screens.AddCategoryScreen.createRoute(
+                                            currentBudget.id
+                                        )
+                                    )
                                 }) {
                                     Icon(
-                                        imageVector = androidx.compose.material.icons.Icons.Default.Add,
+                                        imageVector = Icons.Default.Add,
                                         contentDescription = "Add Category"
                                     )
                                 }
@@ -162,74 +192,75 @@ fun CategoryItem(category: CategoryEntity,
 
     // Determine the color based on progress
     val progressColor = when {
-        progress < 0.5f -> Color.Green
+        progress < 0.5f -> Green700
         progress < 0.8f -> Color.Yellow
         else -> Color.Red
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-    ) {
-        Row(
+    Card {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 2.dp), // Adjust padding if needed
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            Text(
-                text = category.name,
+                .padding(8.dp)
+        ) {
+            Row(
                 modifier = Modifier
-                    .weight(1f),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Box{
-                IconButton(onClick = {
-                    menuExpanded = true
-                }) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.MoreVert,
-                        contentDescription = "Menu"
-                    )
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp), // Adjust padding if needed
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = category.name,
+                    modifier = Modifier
+                        .weight(1f),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Box {
+                    IconButton(onClick = {
+                        menuExpanded = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Menu"
+                        )
+                    }
+
+                    // Dropdown menu
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(onClick = {
+                            onNavigate(Screens.SpendScreen.createRoute(category.id))
+                            menuExpanded = false
+                        },
+                            text = {
+                                Text("Spend")
+                            })
+                        DropdownMenuItem(onClick = {
+                            //                onNavigate(Screens.CategoryDetailsScreen.createRoute(category.id))
+                            menuExpanded = false
+                        },
+                            text = {
+                                Text("View Details")
+                            })
+                        DropdownMenuItem(onClick = {
+                            //                onNavigate(Screens.CategoryEditScreen.createRoute(category.id))
+                            menuExpanded = false
+                        },
+                            text = {
+                                Text("Edit")
+                            })
+                        DropdownMenuItem(onClick = {
+                            onDeleteCategory()
+                            menuExpanded = false
+                        }, text = {
+                            Text("Delete")
+                        })
+                    }
                 }
 
-                // Dropdown menu
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
-                ) {
-                    DropdownMenuItem(onClick = {
-                    onNavigate(Screens.SpendScreen.createRoute(category.id))
-                        menuExpanded = false
-                    },
-                        text = {
-                            Text("Spend")
-                        })
-                    DropdownMenuItem(onClick = {
-//                onNavigate(Screens.CategoryDetailsScreen.createRoute(category.id))
-                        menuExpanded = false
-                    },
-                        text = {
-                            Text("View Details")
-                        })
-                    DropdownMenuItem(onClick = {
-//                onNavigate(Screens.CategoryEditScreen.createRoute(category.id))
-                        menuExpanded = false
-                    },
-                        text = {
-                            Text("Edit")
-                        })
-                    DropdownMenuItem(onClick = {
-                        onDeleteCategory()
-                        menuExpanded = false
-                    }, text = {
-                        Text("Delete")
-                    })
-                }
             }
-
-        }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -274,4 +305,5 @@ fun CategoryItem(category: CategoryEntity,
                     .clip(RoundedCornerShape(4.dp))
             )
         }
+    }
     }

@@ -1,0 +1,10 @@
+package co.ke.foxlysoft.budgetgain.repos
+
+import co.ke.foxlysoft.budgetgain.database.AppDatabase
+import co.ke.foxlysoft.budgetgain.database.TransactionEntity
+
+class TransactionRepository(db: AppDatabase) {
+    private val transactionDao = db.transactionDao()
+
+    suspend fun upsertTransaction(transactionEntity: TransactionEntity) = transactionDao.upsert(transactionEntity)
+}

@@ -21,6 +21,10 @@ class BudgetRepository(
             .mapNotNull { it }
     }
 
+    suspend fun getBudget(budgetId: Long): BudgetEntity {
+        return budgetDao.getBudget(budgetId)
+    }
+
     suspend fun countBudgets(): Int {
         return budgetDao.countBudgets()
     }
@@ -34,6 +38,12 @@ class BudgetRepository(
     suspend fun decrementBudgetedAmount(budgetId: Long, decrementBy: Long) {
         val curBudget = budgetDao.getBudget(budgetId)
         curBudget.budgetedAmount -= decrementBy
+        upsertBudget(curBudget)
+    }
+
+    suspend fun incrementSpentAmount(budgetId: Long, incrementBy: Long) {
+        val curBudget = budgetDao.getBudget(budgetId)
+        curBudget.spentAmount += incrementBy
         upsertBudget(curBudget)
     }
 }
