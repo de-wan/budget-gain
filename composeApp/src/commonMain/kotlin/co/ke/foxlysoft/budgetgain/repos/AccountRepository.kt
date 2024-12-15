@@ -28,4 +28,8 @@ class AccountRepository(db: AppDatabase) {
     suspend fun getByMerchantName(merchantName: String): AccountEntity? {
         return accountDao.getByMerchantName(merchantName)
     }
+
+    fun getAccount(accountId: Long): AccountEntity {
+        return accountDao.getAccount(accountId)
+    }
 }

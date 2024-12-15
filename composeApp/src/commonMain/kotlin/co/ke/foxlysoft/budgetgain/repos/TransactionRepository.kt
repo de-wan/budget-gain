@@ -7,4 +7,6 @@ class TransactionRepository(db: AppDatabase) {
     private val transactionDao = db.transactionDao()
 
     suspend fun upsertTransaction(transactionEntity: TransactionEntity) = transactionDao.upsert(transactionEntity)
+
+    fun getCategoryTransactions(categoryId: Long) = transactionDao.getCategoryTransactions(categoryId)
 }

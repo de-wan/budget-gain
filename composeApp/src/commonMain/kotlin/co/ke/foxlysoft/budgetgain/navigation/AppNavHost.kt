@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreen
 import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreen
+import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreen
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreen
 import co.ke.foxlysoft.budgetgain.ui.HomeScreen
 import co.ke.foxlysoft.budgetgain.ui.SpendScreen
@@ -74,6 +75,23 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
         ) { navBackStackEntry ->
             val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
             SpendScreen(
+                onNavigateBack = {
+                    navHostController.popBackStack()
+                },
+                categoryId = id
+            )
+        }
+        animatedComposable(
+            Screens.CategoryDetailsScreen.route,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
+        ) { navBackStackEntry ->
+            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            CategoryDetailsScreen(
                 onNavigateBack = {
                     navHostController.popBackStack()
                 },

@@ -18,6 +18,7 @@ import co.ke.foxlysoft.budgetgain.ui.HomeScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreenViewModel
+import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.SpendScreenViewModel
 import org.koin.compose.viewmodel.dsl.viewModel
 
@@ -79,5 +80,13 @@ val viewModelModule =
             budgetRepository = get(),
             transactionRepository = get()
         )
+        }
+        viewModel{
+            (categoryId: Long) -> CategoryDetailsScreenViewModel(
+                categoryId = categoryId,
+                categoryRepository = get(),
+                transactionRepository = get(),
+                accountRepository = get(),
+            )
         }
     }

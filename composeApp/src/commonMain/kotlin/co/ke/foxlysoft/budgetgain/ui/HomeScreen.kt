@@ -165,6 +165,7 @@ fun HomeScreen(
                                         homeScreenViewModel.deleteCategory(category)
                                     }
                                 })
+                                Spacer(modifier = Modifier.height(2.dp))
                             }
                         }
 
@@ -188,8 +189,16 @@ fun CategoryItem(category: CategoryEntity,
     // State to track the expanded state of the menu
     var menuExpanded by remember { mutableStateOf(false) }
 
-    val progress = (category.spentAmount / category.amount).coerceIn(0L, 1L) // Ensure the progress is between 0 and 1
+    val floatSpentAmount = category.spentAmount.toFloat()
+    val floatAmount = category.amount.toFloat()
 
+    var progress = 0F
+    if (floatSpentAmount != 0F && floatAmount != 0F) {
+        progress = (floatSpentAmount / floatAmount).coerceIn(
+            0F,
+            1F
+        ) // Ensure the progress is between 0 and 1
+    }
     // Determine the color based on progress
     val progressColor = when {
         progress < 0.5f -> Green700
@@ -238,7 +247,7 @@ fun CategoryItem(category: CategoryEntity,
                                 Text("Spend")
                             })
                         DropdownMenuItem(onClick = {
-                            //                onNavigate(Screens.CategoryDetailsScreen.createRoute(category.id))
+                            onNavigate(Screens.CategoryDetailsScreen.createRoute(category.id))
                             menuExpanded = false
                         },
                             text = {
@@ -291,7 +300,7 @@ fun CategoryItem(category: CategoryEntity,
                     )
                 }
                 Text(
-                    text = "${progress * 100}%",
+                    text = "${(progress * 100).toInt()}%",
                     color = progressColor,
                 )
             }

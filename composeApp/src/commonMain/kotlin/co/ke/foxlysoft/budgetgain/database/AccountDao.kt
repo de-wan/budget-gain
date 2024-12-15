@@ -21,4 +21,7 @@ interface AccountDao {
 
     @Query("SELECT * FROM AccountEntity WHERE holderType = :holderType AND budgetId = :budgetId")
     suspend fun getBudgetAccount(budgetId: Long, holderType: AccountHolderType = AccountHolderType.BUDGET): AccountEntity?
+
+    @Query("SELECT * FROM AccountEntity WHERE id = :accountId")
+    fun getAccount(accountId: Long): AccountEntity
 }
