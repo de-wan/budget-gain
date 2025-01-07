@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,15 +24,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import budgetgain.composeapp.generated.resources.Res
+import budgetgain.composeapp.generated.resources.ic_attach_file
+import budgetgain.composeapp.generated.resources.calculator_variant_outline
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
+import co.ke.foxlysoft.budgetgain.ui.components.CalculatorDialog
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
+import co.ke.foxlysoft.budgetgain.utils.isValidAmount
 import co.touchlab.kermit.Logger
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
-@OptIn(KoinExperimentalAPI::class)
+@OptIn(KoinExperimentalAPI::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AddCategoryScreen(
     id: Long,
@@ -42,6 +51,8 @@ fun AddCategoryScreen(
     var categoryNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
     var categoryAmount by remember { mutableStateOf(TextFieldValue("")) }
     var categoryAmountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+
+    var isCalculatorOpen by remember { mutableStateOf(false) }
 
     fun clearErrorStatus() {
         categoryNameErrorStatus = ErrorStatus(isError = false)
@@ -63,6 +74,17 @@ fun AddCategoryScreen(
         }
 
         return isValid
+    }
+
+    if (isCalculatorOpen) {
+        CalculatorDialog(
+            onDismissRequest = { isCalculatorOpen = false },
+            onApply = {
+                if (isValidAmount(it)) {
+                    categoryAmount = TextFieldValue(it)
+                }
+            }
+        )
     }
 
     Column(
@@ -105,7 +127,15 @@ fun AddCategoryScreen(
                 }
                 categoryAmountErrorStatus = ErrorStatus(isError = false)
             },
-            submitAttempted = submitAttempted
+            submitAttempted = submitAttempted,
+            trailingIcon = {
+                IconButton(onClick = {isCalculatorOpen = true}){
+                    Icon(
+                        painter = painterResource(Res.drawable.calculator_variant_outline),
+                        contentDescription = "Attach Sms"
+                    )
+                }
+            }
         )
         Spacer(modifier = Modifier.height(8.dp))
         Row(
