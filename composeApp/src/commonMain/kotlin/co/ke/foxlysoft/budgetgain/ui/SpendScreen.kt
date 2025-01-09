@@ -6,32 +6,33 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.zIndex
 import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.ic_attach_file
-import co.ke.foxlysoft.budgetgain.shared.ToastManager
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
 import co.touchlab.kermit.Logger
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.parameter.parametersOf
@@ -40,23 +41,28 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun SpendScreen(
     categoryId: Long,
-    spendScreenViewModel: SpendScreenViewModel = koinViewModel(parameters = { parametersOf(categoryId) }),
+    spendScreenViewModel: SpendScreenViewModel = koinViewModel(parameters = {
+        parametersOf(
+            categoryId
+        )
+    }),
     onNavigateBack: () -> Unit
 ) {
-    val toastManager = koinInject<ToastManager>()
-    var scope = rememberCoroutineScope()
     val category = spendScreenViewModel.currentCategory.collectAsState().value
 
-    var ref by remember { mutableStateOf(TextFieldValue("")) }
-    var refErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
-    var amount by remember { mutableStateOf(TextFieldValue("")) }
-    var amountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
-    var merchant by remember { mutableStateOf(TextFieldValue("")) }
-    var merchantErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
-    var description by remember { mutableStateOf(TextFieldValue("")) }
-    var descriptionErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+    val merchantAccounts by spendScreenViewModel.merchantAccounts.collectAsState()
+    var merchantAutoCompleteExpanded by remember { mutableStateOf(false) }
+
+    var ref by remember { mutableStateOf("") }
+    var refErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
+    var amount by remember { mutableStateOf("") }
+    var amountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
+    var merchant by remember { mutableStateOf("") }
+    var merchantErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
+    var description by remember { mutableStateOf("") }
+    var descriptionErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
     var timestamp by remember { mutableStateOf("") }
-    var timestampErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+    var timestampErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
     var submitAttempted by remember { mutableStateOf(false) }
 
     fun clearErrorStatus() {
@@ -69,23 +75,24 @@ fun SpendScreen(
 
     fun isFormValid(): Boolean {
         var isValid = true
-        if (ref.text.isEmpty()) {
+        if (ref.isEmpty()) {
             refErrorStatus = ErrorStatus(isError = true, errorMsg = "Ref is required")
             isValid = false
         }
-        if (amount.text.isEmpty()) {
+        if (amount.isEmpty()) {
             amountErrorStatus = ErrorStatus(isError = true, errorMsg = "Amount is required")
             isValid = false
-        } else if(amount.text.toFloatOrNull() == null) {
+        } else if (amount.toFloatOrNull() == null) {
             amountErrorStatus = ErrorStatus(isError = true, errorMsg = "Amount is invalid")
             isValid = false
         }
-        if (merchant.text.isEmpty()) {
+        if (merchant.isEmpty()) {
             merchantErrorStatus = ErrorStatus(isError = true, errorMsg = "Merchant is required")
             isValid = false
         }
-        if (description.text.isEmpty()) {
-            descriptionErrorStatus = ErrorStatus(isError = true, errorMsg = "Description is required")
+        if (description.isEmpty()) {
+            descriptionErrorStatus =
+                ErrorStatus(isError = true, errorMsg = "Description is required")
             isValid = false
         }
         if (timestamp.isEmpty()) {
@@ -95,23 +102,23 @@ fun SpendScreen(
         return isValid
     }
 
-    Column (
+    Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp)
-    ){
-        Row (
+    ) {
+        Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
-        ){
+        ) {
             Text("Spend", style = MaterialTheme.typography.headlineLarge)
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-        ){
+        ) {
             Text("Category: ${category?.name}")
             IconButton(onClick = {
                 // TODO: Open sms picker
-            }){
+            }) {
                 Icon(
                     painter = painterResource(Res.drawable.ic_attach_file),
                     contentDescription = "Attach Sms"
@@ -125,12 +132,13 @@ fun SpendScreen(
                     modifier = Modifier
                         .fillMaxWidth(),
                     labelStr = "Ref",
-                    textFieldInput = ref,
+                    Value = ref,
                     errorStatus = refErrorStatus,
                     onValueChange = { ref = it },
                     validator = {
-                        if (it.isEmpty()){
-                            refErrorStatus = ErrorStatus(isError = true, errorMsg = "Ref is required")
+                        if (it.isEmpty()) {
+                            refErrorStatus =
+                                ErrorStatus(isError = true, errorMsg = "Ref is required")
                             return@BGainOutlineField
                         }
                         refErrorStatus = ErrorStatus(isError = false)
@@ -141,28 +149,67 @@ fun SpendScreen(
                     modifier = Modifier
                         .fillMaxWidth(),
                     labelStr = "Merchant",
-                    textFieldInput = merchant,
+                    Value = merchant,
                     errorStatus = merchantErrorStatus,
-                    onValueChange = { merchant = it },
+                    onValueChange = {
+                        println("Merchant changed to $it")
+                        spendScreenViewModel.updateMerchantSearchQuery(it)
+                        merchantAutoCompleteExpanded = true
+
+                        merchant = it
+                    },
                     validator = {
-                        if (it.isEmpty()){
-                            merchantErrorStatus = ErrorStatus(isError = true, errorMsg = "Merchant is required")
+                        if (it.isEmpty()) {
+                            merchantErrorStatus =
+                                ErrorStatus(isError = true, errorMsg = "Merchant is required")
                             return@BGainOutlineField
                         }
                         merchantErrorStatus = ErrorStatus(isError = false)
                     },
                     submitAttempted = submitAttempted
                 )
+                // Dropdown menu
+                Box {
+                    if (merchantAutoCompleteExpanded && merchantAccounts.isNotEmpty()) {
+                        Popup(
+                            onDismissRequest = { merchantAutoCompleteExpanded = false },
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp)
+                                    .zIndex(1f),
+                            ) {
+                                LazyColumn {
+                                    items(items = merchantAccounts) { account ->
+                                        TextButton(
+                                            modifier = Modifier
+                                                .fillMaxWidth(),
+                                            onClick = {
+                                                merchant = account.merchantName
+                                                merchantAutoCompleteExpanded = false
+                                            },
+                                        ){
+                                            Text(text = account.merchantName)
+                                        }
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                }
                 BGainOutlineField(
                     modifier = Modifier
                         .fillMaxWidth(),
                     labelStr = "Description",
-                    textFieldInput = description,
+                    Value = description,
                     errorStatus = descriptionErrorStatus,
                     onValueChange = { description = it },
                     validator = {
-                        if (it.isEmpty()){
-                            descriptionErrorStatus = ErrorStatus(isError = true, errorMsg = "Description is required")
+                        if (it.isEmpty()) {
+                            descriptionErrorStatus =
+                                ErrorStatus(isError = true, errorMsg = "Description is required")
                             return@BGainOutlineField
                         }
                         descriptionErrorStatus = ErrorStatus(isError = false)
@@ -173,12 +220,13 @@ fun SpendScreen(
                     modifier = Modifier
                         .fillMaxWidth(),
                     labelStr = "Amount *",
-                    textFieldInput = amount,
+                    Value = amount,
                     errorStatus = amountErrorStatus,
                     onValueChange = { amount = it },
                     validator = {
-                        if (it.isEmpty()){
-                            amountErrorStatus = ErrorStatus(isError = true, errorMsg = "Amount is required")
+                        if (it.isEmpty()) {
+                            amountErrorStatus =
+                                ErrorStatus(isError = true, errorMsg = "Amount is required")
                             return@BGainOutlineField
                         }
                         amountErrorStatus = ErrorStatus(isError = false)
@@ -186,7 +234,7 @@ fun SpendScreen(
                     submitAttempted = submitAttempted
                 )
                 BGainOutlineField(
-                    onDateChange = {  },
+                    onDateChange = { },
                     labelStr = "Select Timestamp",
                     errorStatus = timestampErrorStatus,
                     isDateTimePicker = true,
@@ -217,10 +265,10 @@ fun SpendScreen(
                                 onError = {
 //                                    toastManager.showToast("Error")
                                 },
-                                ref.text,
-                                merchant.text,
-                                description.text,
-                                amountToCents(amount.text),
+                                ref,
+                                merchant,
+                                description,
+                                amountToCents(amount),
                                 timestamp
                             )
                         } catch (e: Exception) {
@@ -228,7 +276,7 @@ fun SpendScreen(
                         }
 
                         onNavigateBack()
-                    }){
+                    }) {
                         Text(text = "Spend")
                     }
                     FilledTonalButton(onClick = {

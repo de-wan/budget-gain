@@ -14,8 +14,12 @@ import co.ke.foxlysoft.budgetgain.repos.TransactionRepository
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -34,6 +38,26 @@ class SpendScreenViewModel(
             initialValue = null
         )
 
+    private val _merchantAccounts = MutableStateFlow<List<AccountEntity>>(emptyList())
+    val merchantAccounts: StateFlow<List<AccountEntity>> = _merchantAccounts
+
+    private var _searchJob: Job? = null
+
+    // Function to update the search query
+    fun updateMerchantSearchQuery(query: String) {
+        _searchJob?.cancel()
+        _searchJob = viewModelScope.launch {
+            delay(500)
+            if (query.length >= 3) {
+                accountRepository.getSelectableMerchantAccounts(query).collectLatest {
+                    _merchantAccounts.value = it
+                }
+            } else if(_merchantAccounts.value.isNotEmpty()) {
+                _merchantAccounts.value = emptyList()
+            }
+        }
+    }
+
     @Transaction
     fun spend(onComplete:() -> Unit , onError: (Throwable) -> Unit, ref: String, merchantName: String, description: String, amount: Long, timestamp: String) {
         viewModelScope.launch {
@@ -45,7 +69,6 @@ class SpendScreenViewModel(
                         return@withContext
                     }
                     // Get or create merchant account
-                    var accountId: Long
                     var merchantAccount = accountRepository.getByMerchantName(merchantName)
                     if (merchantAccount == null) {
                         merchantAccount = AccountEntity(
@@ -55,17 +78,15 @@ class SpendScreenViewModel(
                             balance = 0L,
                         )
 
-                        accountId = accountRepository.upsertAccount(merchantAccount)
-
-                    } else {
-                        accountId = merchantAccount.id
+                        accountRepository.upsertAccount(merchantAccount)
+                        merchantAccount = accountRepository.getByMerchantName(merchantName)
                     }
 
                     // Get budget
                     val budget = budgetRepository.getBudget(currentCategoryProxy.budgetId)
 
                     // Get or create main account
-                    var budgetAccount = accountRepository.getOrCreateBudgetAccount(budget)
+                    val budgetAccount = accountRepository.getOrCreateBudgetAccount(budget)
 
                     // prepare transaction
                     val transaction = TransactionEntity(
@@ -73,7 +94,7 @@ class SpendScreenViewModel(
                         type = AccountType.CREDIT,
                         description = description,
                         debitAccountId = budgetAccount.id,
-                        creditAccountId = accountId,
+                        creditAccountId = merchantAccount!!.id,
                         categoryId = categoryId,
                         amount = amount,
                         timestamp = timestamp,
