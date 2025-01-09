@@ -8,8 +8,7 @@ import kotlinx.coroutines.IO
 import platform.Foundation.NSHomeDirectory
 
 fun getDatabaseBuilder() = Room.databaseBuilder<AppDatabase>(
-    name = NSHomeDirectory() + "/budgetgain.db",
-    factory =  { AppDatabase::class.instantiateImpl() }
+    name = NSHomeDirectory() + "/budgetgain.db"
 )
 
 fun getRoomDatabase(): AppDatabase {

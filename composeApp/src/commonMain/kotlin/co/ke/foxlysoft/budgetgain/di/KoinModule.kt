@@ -20,6 +20,7 @@ import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.SpendScreenViewModel
+import co.ke.foxlysoft.budgetgain.ui.MerchantsScreenViewModel
 import org.koin.compose.viewmodel.dsl.viewModel
 
 
@@ -90,4 +91,5 @@ val viewModelModule =
                 budgetRepository = get(),
             )
         }
+        viewModelOf(::MerchantsScreenViewModel)
     }

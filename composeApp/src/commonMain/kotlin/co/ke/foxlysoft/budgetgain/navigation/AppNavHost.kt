@@ -12,6 +12,7 @@ import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreen
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreen
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreen
 import co.ke.foxlysoft.budgetgain.ui.HomeScreen
+import co.ke.foxlysoft.budgetgain.ui.MerchantsScreen
 import co.ke.foxlysoft.budgetgain.ui.SpendScreen
 
 @Composable
@@ -97,6 +98,14 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
                 },
                 categoryId = id
             )
+        }
+        animatedComposable(
+            Screens.Merchants.route
+        ) {
+            MerchantsScreen(
+                onNavigate = { route ->
+                    navHostController.navigate(route)
+                },)
         }
     }
 }

@@ -149,9 +149,12 @@ fun AppNavDrawerContent(modifier: Modifier = Modifier, onCloseDrawer: () -> Unit
     Spacer(modifier = Modifier.height(8.dp))
     NavigationDrawerItem(
         label = {
-            Text(text = "Payees", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
+            Text(text = "Merchants", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
         },
         selected = false,
-        onClick = { /*TODO*/ }
+        onClick = {
+            onCloseDrawer()
+            navHostController.navigate(Screens.Merchants.route)
+        }
     )
 }

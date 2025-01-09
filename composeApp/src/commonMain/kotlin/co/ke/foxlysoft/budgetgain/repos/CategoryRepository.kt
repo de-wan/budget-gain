@@ -21,7 +21,7 @@ class CategoryRepository(
         return categoryDao.getCategoryFlow(categoryId)
     }
 
-    fun getCategory(categoryId: Long): CategoryEntity {
+    suspend fun getCategory(categoryId: Long): CategoryEntity {
         return categoryDao.getCategory(categoryId)
     }
 }

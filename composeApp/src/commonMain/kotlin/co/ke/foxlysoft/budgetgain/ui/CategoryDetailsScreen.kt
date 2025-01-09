@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,9 +80,13 @@ fun TransactionItem(
     var menuExpanded by remember { mutableStateOf(false) }
 
     var merchantAccount by remember { mutableStateOf(AccountEntity()) }
-    categoryDetailsScreenViewModel.getMerchantAccount(transaction) {
-        merchantAccount = it
+
+    LaunchedEffect(Unit) {
+        categoryDetailsScreenViewModel.getMerchantAccount(transaction) {
+            merchantAccount = it
+        }
     }
+
 
     Card{
         Row(

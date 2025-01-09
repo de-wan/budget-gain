@@ -5,8 +5,8 @@ import platform.UIKit.UIAlertControllerStyleAlert
 import platform.UIKit.UIApplication
 import platform.UIKit.endEditing
 
-class ToastManager {
-    fun showToast(message: String) {
+actual class ToastManager {
+    actual fun showToast(message: String) {
         // Dismiss the keyboard if it's open
         dismissKeyboard()
 

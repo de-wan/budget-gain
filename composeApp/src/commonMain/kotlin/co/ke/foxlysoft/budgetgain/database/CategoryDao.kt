@@ -21,5 +21,5 @@ interface CategoryDao {
     fun getCategoryFlow(categoryId: Long): Flow<CategoryEntity>
 
     @Query("SELECT * FROM CategoryEntity WHERE id = :categoryId")
-    fun getCategory(categoryId: Long): CategoryEntity
+    suspend fun getCategory(categoryId: Long): CategoryEntity
 }

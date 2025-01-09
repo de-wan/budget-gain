@@ -16,4 +16,6 @@ sealed class Screens(
     data object CategoryDetailsScreen : Screens("categoryDetailsScreen/{id}"){
         fun createRoute(id: Long) = "categoryDetailsScreen/$id"
     }
+
+    data object Merchants: Screens("merchants")
 }

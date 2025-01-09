@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -22,10 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import budgetgain.composeapp.generated.resources.Res
-import budgetgain.composeapp.generated.resources.ic_attach_file
 import budgetgain.composeapp.generated.resources.calculator_variant_outline
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
@@ -38,7 +35,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
-@OptIn(KoinExperimentalAPI::class, ExperimentalMaterial3Api::class)
+@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun AddCategoryScreen(
     id: Long,
@@ -47,9 +44,9 @@ fun AddCategoryScreen(
 ) {
     var submitAttempted by remember { mutableStateOf(false) }
 
-    var categoryName by remember { mutableStateOf(TextFieldValue("")) }
+    var categoryName by remember { mutableStateOf("") }
     var categoryNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
-    var categoryAmount by remember { mutableStateOf(TextFieldValue("")) }
+    var categoryAmount by remember { mutableStateOf("") }
     var categoryAmountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
 
     var isCalculatorOpen by remember { mutableStateOf(false) }
@@ -61,14 +58,14 @@ fun AddCategoryScreen(
 
     fun isFormValid(): Boolean {
         var isValid = true
-        if (categoryName.text.isEmpty()) {
+        if (categoryName.isEmpty()) {
             categoryNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Category Name is required")
             isValid = false
         }
-        if (categoryAmount.text.isEmpty()) {
+        if (categoryAmount.isEmpty()) {
             categoryAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Category Amount is required")
             isValid = false
-        } else if (categoryAmount.text.toDoubleOrNull() == null) {
+        } else if (categoryAmount.toDoubleOrNull() == null) {
             categoryAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Invalid Amount")
             isValid = false
         }
@@ -81,7 +78,7 @@ fun AddCategoryScreen(
             onDismissRequest = { isCalculatorOpen = false },
             onApply = {
                 if (isValidAmount(it)) {
-                    categoryAmount = TextFieldValue(it)
+                    categoryAmount = it
                 }
             }
         )
@@ -96,7 +93,7 @@ fun AddCategoryScreen(
             modifier = Modifier
                 .fillMaxWidth(),
             labelStr = "Category Name",
-            textFieldInput = categoryName,
+            Value = categoryName,
             errorStatus = categoryNameErrorStatus,
             onValueChange = { categoryName = it },
             validator = {
@@ -112,7 +109,7 @@ fun AddCategoryScreen(
             modifier = Modifier
                 .fillMaxWidth(),
             labelStr = "Category Amount",
-            textFieldInput = categoryAmount,
+            Value = categoryAmount,
             errorStatus = categoryAmountErrorStatus,
             onValueChange = { categoryAmount = it },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -153,8 +150,8 @@ fun AddCategoryScreen(
                 addCategoryScreenViewModel.createCategory(
                     CategoryEntity(
                         budgetId = id,
-                        name = categoryName.text,
-                        amount = amountToCents(categoryAmount.text),
+                        name = categoryName,
+                        amount = amountToCents(categoryAmount),
                         spentAmount = 0,
                     )
                 )
