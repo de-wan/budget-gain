@@ -54,7 +54,7 @@ import org.jetbrains.compose.resources.painterResource
 fun BGainOutlineField(
     modifier: Modifier = Modifier,
     labelStr: String,
-    textFieldInput: TextFieldValue? = null,
+    Value: String = "",
     errorStatus: ErrorStatus,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     isPasswordField: Boolean = false,
@@ -63,7 +63,7 @@ fun BGainOutlineField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     leadingIcon: @Composable() (() -> Unit)? = null,
     trailingIcon: @Composable() (() -> Unit)? = null,
-    onValueChange: ((TextFieldValue) -> Unit)? = null,
+    onValueChange: ((String) -> Unit)? = null,
     onDateChange: ((Long) -> Unit)? = null,
     onDateTimeChange: ((String) -> Unit)? = null,
     validator: ((String) -> Unit)? = null,
@@ -236,13 +236,13 @@ fun BGainOutlineField(
             },
         )
     }
-    else if (textFieldInput != null) {
+    else {
         OutlinedTextField(
-            value = textFieldInput,
+            value = Value,
             onValueChange = {
                 hasInteracted = true;
                 if (validator != null) {
-                    validator(it.text)
+                    validator(it)
                 };
                 if (onValueChange != null) {
                     onValueChange(it)
