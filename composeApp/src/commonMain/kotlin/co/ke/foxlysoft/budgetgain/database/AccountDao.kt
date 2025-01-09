@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AccountDao {
@@ -22,6 +23,12 @@ interface AccountDao {
     @Query("SELECT * FROM AccountEntity WHERE holderType = :holderType AND budgetId = :budgetId")
     suspend fun getBudgetAccount(budgetId: Long, holderType: AccountHolderType = AccountHolderType.BUDGET): AccountEntity?
 
+    @Query("SELECT * FROM AccountEntity WHERE holderType = :holderType")
+    fun getMerchantAccounts(holderType: AccountHolderType = AccountHolderType.MERCHANT): Flow<List<AccountEntity>>
+
+    @Query("SELECT * FROM AccountEntity WHERE holderType = :holderType AND name LIKE :search ORDER BY name DESC LIMIT 10")
+    fun getSelectableMerchantAccounts(holderType: AccountHolderType = AccountHolderType.MERCHANT, search: String = "%%"): Flow<List<AccountEntity>>
+
     @Query("SELECT * FROM AccountEntity WHERE id = :accountId")
-    fun getAccount(accountId: Long): AccountEntity
+    suspend fun getAccount(accountId: Long): AccountEntity
 }
