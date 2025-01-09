@@ -31,6 +31,7 @@ import budgetgain.composeapp.generated.resources.ic_attach_file
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
+import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.touchlab.kermit.Logger
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -107,15 +108,10 @@ fun SpendScreen(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.SpaceBetween
+
         ) {
             Text("Spend", style = MaterialTheme.typography.headlineLarge)
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Category: ${category?.name}")
             IconButton(onClick = {
                 // TODO: Open sms picker
             }) {
@@ -125,6 +121,16 @@ fun SpendScreen(
                 )
             }
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("${category?.name}", style = MaterialTheme.typography.headlineSmall)
+
+
+        }
+        Text("Category Balance: ${category?.amount?.minus(category.spentAmount)
+            ?.let { centsToString(it) }}")
 
         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column {
