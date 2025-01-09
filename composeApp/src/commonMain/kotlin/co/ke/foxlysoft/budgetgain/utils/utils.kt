@@ -89,6 +89,10 @@ fun isDigit(c: Char): Boolean {
     return c in '0'..'9'
 }
 
+fun isDigitStr(str: String): Boolean {
+    return str.all { it.isDigit() }
+}
+
 fun isValidAmount(amount: String): Boolean {
     // Check if the amount is not empty and matches the regex pattern for valid amounts
     val regex = "^\\d+(\\.\\d{1,2})?$".toRegex()
