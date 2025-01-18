@@ -50,6 +50,7 @@ import co.ke.foxlysoft.budgetgain.ui.Theme.Green500
 import co.ke.foxlysoft.budgetgain.ui.Theme.Green700
 import co.ke.foxlysoft.budgetgain.ui.Theme.Green900
 import co.ke.foxlysoft.budgetgain.ui.Theme.GreenA700
+import co.ke.foxlysoft.budgetgain.ui.Theme.Orange500
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -202,7 +203,7 @@ fun CategoryItem(category: CategoryEntity,
     // Determine the color based on progress
     val progressColor = when {
         progress < 0.5f -> Green700
-        progress < 0.8f -> Color.Yellow
+        progress < 0.8f -> Orange500
         else -> Color.Red
     }
 
