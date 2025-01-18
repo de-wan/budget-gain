@@ -169,14 +169,8 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(2.dp))
                             }
                         }
-
-                        Text(text = "10/10")
                     }
                 }
-
-
-
-
             }
         }
     }
