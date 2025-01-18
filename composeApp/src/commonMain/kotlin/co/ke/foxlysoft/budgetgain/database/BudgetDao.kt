@@ -27,4 +27,15 @@ interface BudgetDao {
     // count number of budgets
     @Query("SELECT COUNT(1) FROM BudgetEntity")
     suspend fun countBudgets(): Int
+
+    @Query("UPDATE BudgetEntity SET isActive = 0 WHERE isActive = 1")
+    suspend fun deactivateBudget()
+
+    @Query("UPDATE BudgetEntity SET isActive = 1 WHERE id = :budgetId")
+    suspend fun activateBudgetPart(budgetId: Long)
+
+    suspend fun activateBudget(budgetId: Long) {
+        deactivateBudget()
+        activateBudgetPart(budgetId)
+    }
 }

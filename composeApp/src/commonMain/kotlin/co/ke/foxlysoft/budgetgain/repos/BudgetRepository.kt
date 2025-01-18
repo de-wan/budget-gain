@@ -46,4 +46,8 @@ class BudgetRepository(
         curBudget.spentAmount += incrementBy
         upsertBudget(curBudget)
     }
+
+    suspend fun activateBudget(budgetId: Long) {
+        budgetDao.activateBudget(budgetId)
+    }
 }

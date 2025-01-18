@@ -24,4 +24,10 @@ class AllBudgetsScreenViewModel(
             budgetRepository.deleteBudget(budgetEntity)
         }
     }
+
+    fun activateBudget(budgetId: Long) {
+        viewModelScope.launch {
+            budgetRepository.activateBudget(budgetId)
+        }
+    }
 }

@@ -14,13 +14,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,7 +41,7 @@ import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
-@OptIn(KoinExperimentalAPI::class)
+@OptIn(KoinExperimentalAPI::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AllBudgetsScreen(
     allBudgetsScreenViewModel: AllBudgetsScreenViewModel = koinViewModel(),
@@ -67,9 +65,13 @@ fun AllBudgetsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(allBudgets.size) {
-                    BudgetItem(allBudgets[it], onActivate = {}, onDelete = {
-                        allBudgetsScreenViewModel.deleteBudget(allBudgets[it])
-                    })
+                    BudgetItem(allBudgets[it],
+                        onActivate = {
+                            allBudgetsScreenViewModel.activateBudget(allBudgets[it].id)
+                        }, onDelete = {
+                            allBudgetsScreenViewModel.deleteBudget(allBudgets[it])
+                        }
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                 }
             }
@@ -96,7 +98,7 @@ fun AllBudgetsScreen(
 }
 
 @Composable
-fun BudgetItem(budget: BudgetEntity, onActivate: () -> Unit, onDelete: () -> Unit) {
+fun BudgetItem(budget: BudgetEntity, onActivate: () -> Unit = {}, onDelete: () -> Unit = {}) {
     // State to track the expanded state of the menu
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -135,13 +137,13 @@ fun BudgetItem(budget: BudgetEntity, onActivate: () -> Unit, onDelete: () -> Uni
                             }, text = {
                                 Text("Activate")
                             })
+                            DropdownMenuItem(onClick = {
+                                onDelete()
+                                menuExpanded = false
+                            }, text = {
+                                Text("Delete")
+                            })
                         }
-                        DropdownMenuItem(onClick = {
-                            onDelete()
-                            menuExpanded = false
-                        }, text = {
-                            Text("Delete")
-                        })
                     }
                 }
             }
