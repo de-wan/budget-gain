@@ -16,4 +16,7 @@ interface TransactionDao {
 
     @Query("SELECT * FROM TransactionEntity WHERE categoryId = :categoryId")
     fun getCategoryTransactions(categoryId: Long): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM TransactionEntity WHERE categoryId = :categoryId ORDER BY id DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPagingCategoryTransactions(categoryId: Long, limit: Int, offset: Int): List<TransactionEntity>
 }

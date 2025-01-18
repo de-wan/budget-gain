@@ -8,11 +8,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,17 +26,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
+import co.ke.foxlysoft.budgetgain.utils.PaginationState
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -46,9 +56,34 @@ fun CategoryDetailsScreen(
 ){
     val category = categoryDetailsScreenViewModel.currentCategory.collectAsState().value
 
-    val categoryTransactions by remember(category.id) {
-        categoryDetailsScreenViewModel.getCategoryTransactions(category.id)
-    }.collectAsState()
+    val lazyColumnListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+
+    val transactionsList by categoryDetailsScreenViewModel.transactionsList.collectAsStateWithLifecycle()
+    val pagingState = categoryDetailsScreenViewModel.pagingState.collectAsStateWithLifecycle()
+
+    val testList = listOf("Item 1", "Item 2", "Item 3")
+
+    LaunchedEffect(key1 = Unit) {
+        categoryDetailsScreenViewModel.clearPaging()
+        categoryDetailsScreenViewModel.getCategoryTransactions(categoryId)
+    }
+
+    val shouldPaginate = remember {
+        derivedStateOf {
+            categoryDetailsScreenViewModel.canPaginate && (
+                    lazyColumnListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                        ?: -5
+                    ) >= (lazyColumnListState.layoutInfo.totalItemsCount - 3)
+        }
+    }
+
+    LaunchedEffect(key1 = shouldPaginate.value) {
+        if (shouldPaginate.value && pagingState.value == PaginationState.REQUEST_INACTIVE) {
+            categoryDetailsScreenViewModel.getCategoryTransactions(categoryId)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -60,12 +95,63 @@ fun CategoryDetailsScreen(
         HorizontalDivider()
         Text(text = "Transactions")
 
-        categoryTransactions.forEach { transaction ->
-            TransactionItem(categoryDetailsScreenViewModel, transaction, onDelete = {
-                // TODO: add a confirmation dialog
-                categoryDetailsScreenViewModel.deleteTransaction(transaction)
-            })
-            Spacer(modifier = Modifier.height(4.dp))
+        ElevatedCard (
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
+        ) {
+            LazyColumn(
+                state = lazyColumnListState,
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                items(
+                    transactionsList.size,
+                    key = { transactionsList[it].id },
+                ) { index ->
+                    TransactionItem(categoryDetailsScreenViewModel, transactionsList[index], onDelete = {
+                        // TODO: add a confirmation dialog
+                        categoryDetailsScreenViewModel.deleteTransaction(transactionsList[index])
+                    })
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+            }
+        }
+
+        when (pagingState.value) {
+            PaginationState.LOADING -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            PaginationState.REQUEST_INACTIVE -> {
+//                Text(text = "Request Inactive")
+            }
+            PaginationState.PAGINATING -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            PaginationState.ERROR -> {
+//                Text(text = "Error")
+            }
+            PaginationState.PAGINATION_EXHAUST -> {
+//                Text(text = "Pagination Exhaust")
+            }
+            PaginationState.EMPTY -> {
+//                Text(text = "Empty")
+            }
         }
     }
 }
@@ -81,7 +167,7 @@ fun TransactionItem(
 
     var merchantAccount by remember { mutableStateOf(AccountEntity()) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(key1 = Unit) {
         categoryDetailsScreenViewModel.getMerchantAccount(transaction) {
             merchantAccount = it
         }

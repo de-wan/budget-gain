@@ -11,4 +11,6 @@ class TransactionRepository(db: AppDatabase) {
     suspend fun deleteTransaction(transactionEntity: TransactionEntity) = transactionDao.delete(transactionEntity)
 
     fun getCategoryTransactions(categoryId: Long) = transactionDao.getCategoryTransactions(categoryId)
+
+    suspend fun getPagingCategoryTransactions(categoryId: Long, limit: Int, offset: Int) = transactionDao.getPagingCategoryTransactions(categoryId, limit, offset)
 }
