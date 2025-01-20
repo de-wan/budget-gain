@@ -13,7 +13,11 @@ class CategoryRepository(
 
     suspend fun deleteCategory(categoryEntity: CategoryEntity) = categoryDao.delete(categoryEntity)
 
-    fun getBudgetCategories(budgetId: Long): Flow<List<CategoryEntity>> {
+    fun getBudgetCategoriesFlow(budgetId: Long): Flow<List<CategoryEntity>> {
+        return categoryDao.getBudgetCategoriesFlow(budgetId)
+    }
+
+    suspend fun getBudgetCategories(budgetId: Long): List<CategoryEntity> {
         return categoryDao.getBudgetCategories(budgetId)
     }
 

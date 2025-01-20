@@ -41,7 +41,7 @@ import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
-@OptIn(KoinExperimentalAPI::class, ExperimentalMaterial3Api::class)
+@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun AllBudgetsScreen(
     allBudgetsScreenViewModel: AllBudgetsScreenViewModel = koinViewModel(),

@@ -6,7 +6,7 @@ import kotlinx.datetime.Clock
 
 @Entity
 data class BudgetEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val name: String = "",
     var isActive: Boolean = false,
     val initialBalance: Long = 0,   // amount in cents

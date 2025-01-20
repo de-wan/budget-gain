@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.zIndex
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
@@ -34,6 +41,8 @@ fun CreateBudgetScreen(
     createBudgetScreenViewModel: CreateBudgetScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit
 ) {
+    val selectableBudgets by createBudgetScreenViewModel.selectableBudgets.collectAsState()
+
     var budgetName by remember { mutableStateOf("") }
     var budgetNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var budgetAmount by remember { mutableStateOf("") }
@@ -42,6 +51,9 @@ fun CreateBudgetScreen(
     var startDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var endDate by remember { mutableStateOf(0L) }
     var endDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+    var copyCategoriesFrom by remember { mutableStateOf("") }
+    var copyCategoriesFromErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+    var copyCategoriesFromAutoCompleteExpanded by remember { mutableStateOf(false) }
 //    var errorMessage by remember { mutableStateOf<String?>(null) }
     var submitAttempted by remember { mutableStateOf(false) }
 
@@ -143,6 +155,56 @@ fun CreateBudgetScreen(
                         .fillMaxWidth(),
                     submitAttempted = submitAttempted
                 )
+                BGainOutlineField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    labelStr = "Copy categories from",
+                    Value = copyCategoriesFrom,
+                    errorStatus = copyCategoriesFromErrorStatus,
+                    onValueChange = {
+                        println("Budget to copy from changed to $it")
+                        createBudgetScreenViewModel.updateBudgetSearchQuery(it)
+                        copyCategoriesFromAutoCompleteExpanded = true
+
+                        copyCategoriesFrom = it
+                    },
+                    validator = {
+                        // TODO: validate if in list
+                        copyCategoriesFromErrorStatus = ErrorStatus(isError = false)
+                    },
+                    submitAttempted = submitAttempted
+                )
+                // Dropdown menu
+                Box {
+                    if (copyCategoriesFromAutoCompleteExpanded && selectableBudgets.isNotEmpty()) {
+                        Popup(
+                            onDismissRequest = { copyCategoriesFromAutoCompleteExpanded = false },
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp)
+                                    .zIndex(1f),
+                            ) {
+                                LazyColumn {
+                                    items(items = selectableBudgets) { budget ->
+                                        TextButton(
+                                            modifier = Modifier
+                                                .fillMaxWidth(),
+                                            onClick = {
+                                                copyCategoriesFrom = budget.name
+                                                copyCategoriesFromAutoCompleteExpanded = false
+                                            },
+                                        ){
+                                            Text(text = budget.name)
+                                        }
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -167,7 +229,7 @@ fun CreateBudgetScreen(
                             budgetedAmount = 0L,
                             spentAmount = 0L
                         )
-                        createBudgetScreenViewModel.createBudget(budget)
+                        createBudgetScreenViewModel.createBudget(budget, copyCategoriesFrom)
                         onNavigate(Screens.Home.route)
                     }) {
                         Text(text = "Create Budget")

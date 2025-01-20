@@ -1,5 +1,7 @@
 package co.ke.foxlysoft.budgetgain.repos
 
+import co.ke.foxlysoft.budgetgain.database.AccountEntity
+import co.ke.foxlysoft.budgetgain.database.AccountHolderType
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import kotlinx.coroutines.flow.Flow
@@ -12,7 +14,7 @@ class BudgetRepository(
 
     fun getAllBudgets() = budgetDao.getAll()
 
-    suspend fun upsertBudget(budgetEntity: BudgetEntity) = budgetDao.upsert(budgetEntity)
+    suspend fun upsertBudget(budgetEntity: BudgetEntity): Long = budgetDao.upsert(budgetEntity)
 
     suspend fun deleteBudget(budgetEntity: BudgetEntity) = budgetDao.delete(budgetEntity)
 
@@ -49,5 +51,14 @@ class BudgetRepository(
 
     suspend fun activateBudget(budgetId: Long) {
         budgetDao.activateBudget(budgetId)
+    }
+
+    fun searchBudgetsByName(search: String): Flow<List<BudgetEntity>> {
+        println("search: $search")
+        return budgetDao.searchBudgetsByName("%${search}%")
+    }
+
+    suspend fun getBudgetByName(name: String): BudgetEntity? {
+        return budgetDao.getBudgetByName(name)
     }
 }

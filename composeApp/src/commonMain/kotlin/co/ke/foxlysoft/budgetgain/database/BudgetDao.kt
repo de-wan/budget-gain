@@ -38,4 +38,10 @@ interface BudgetDao {
         deactivateBudget()
         activateBudgetPart(budgetId)
     }
+
+    @Query("SELECT * FROM BudgetEntity WHERE name LIKE :search ORDER BY name DESC LIMIT 10")
+    fun searchBudgetsByName(search: String): Flow<List<BudgetEntity>>
+
+    @Query("SELECT * FROM BudgetEntity WHERE name = :name")
+    suspend fun getBudgetByName(name: String): BudgetEntity?
 }

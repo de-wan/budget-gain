@@ -1,6 +1,5 @@
 package co.ke.foxlysoft.budgetgain.ui
 
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
@@ -11,7 +10,6 @@ import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
 import co.ke.foxlysoft.budgetgain.repos.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -37,7 +35,7 @@ private val settingsRepository: SettingsRepository,
 
     // Dynamically filter categories based on the passed budgetId
     fun getBudgetCategories(budgetId: Long): StateFlow<List<CategoryEntity>> {
-        return categoryRepository.getBudgetCategories(budgetId)
+        return categoryRepository.getBudgetCategoriesFlow(budgetId)
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),

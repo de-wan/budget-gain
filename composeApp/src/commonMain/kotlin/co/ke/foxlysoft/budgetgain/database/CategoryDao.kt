@@ -15,7 +15,10 @@ interface CategoryDao {
     suspend fun delete(categoryEntity: CategoryEntity)
 
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId")
-    fun getBudgetCategories(budgetId: Long): Flow<List<CategoryEntity>>
+    fun getBudgetCategoriesFlow(budgetId: Long): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId")
+    suspend fun getBudgetCategories(budgetId: Long): List<CategoryEntity>
 
     @Query("SELECT * FROM CategoryEntity WHERE id = :categoryId")
     fun getCategoryFlow(categoryId: Long): Flow<CategoryEntity>
