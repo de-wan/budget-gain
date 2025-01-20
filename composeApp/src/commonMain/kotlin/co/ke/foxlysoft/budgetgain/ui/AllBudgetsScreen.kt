@@ -57,7 +57,6 @@ fun AllBudgetsScreen(
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .fillMaxSize()
-                .background(Color.White)
         ) {
             Text(text = "All Budgets", style = MaterialTheme.typography.headlineLarge)
             Spacer(modifier = Modifier.height(8.dp))
@@ -159,13 +158,10 @@ fun BudgetItem(budget: BudgetEntity, onActivate: () -> Unit = {}, onDelete: () -
             } else {
 
                 Box(
-                    modifier = Modifier.background(Color.White)
-                        .border(1.dp, Color.Black, MaterialTheme.shapes.small),
+                    modifier = Modifier
+                        .border(1.dp, MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.small),
                 ) {
-                    Text(text = "Inactive", modifier = Modifier.padding(4.dp), style = TextStyle(
-                        color = Color.Black
-                    )
-                    )
+                    Text(text = "Inactive", modifier = Modifier.padding(4.dp))
                 }
             }
 

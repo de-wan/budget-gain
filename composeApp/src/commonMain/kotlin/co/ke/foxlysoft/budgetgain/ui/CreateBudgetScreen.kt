@@ -13,6 +13,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,12 +28,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
+import budgetgain.composeapp.generated.resources.Res
+import budgetgain.composeapp.generated.resources.calculator_variant_outline
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
+import co.ke.foxlysoft.budgetgain.ui.components.CalculatorDialog
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
+import co.ke.foxlysoft.budgetgain.utils.isValidAmount
 import co.touchlab.kermit.Logger
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
@@ -41,6 +48,8 @@ fun CreateBudgetScreen(
     createBudgetScreenViewModel: CreateBudgetScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit
 ) {
+    var isCalculatorOpen by remember {mutableStateOf(false)}
+
     val selectableBudgets by createBudgetScreenViewModel.selectableBudgets.collectAsState()
 
     var budgetName by remember { mutableStateOf("") }
@@ -93,6 +102,17 @@ fun CreateBudgetScreen(
         return isValid
     }
 
+    if (isCalculatorOpen) {
+        CalculatorDialog(
+            onDismissRequest = { isCalculatorOpen = false },
+            onApply = {
+                if (isValidAmount(it)) {
+                    budgetAmount = it
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -135,7 +155,15 @@ fun CreateBudgetScreen(
                         }
                         budgetAmountErrorStatus = ErrorStatus(isError = false)
                     },
-                    submitAttempted = submitAttempted
+                    submitAttempted = submitAttempted,
+                    trailingIcon = {
+                        IconButton(onClick = {isCalculatorOpen = true}){
+                            Icon(
+                                painter = painterResource(Res.drawable.calculator_variant_outline),
+                                contentDescription = "Open Calculator"
+                            )
+                        }
+                    }
                 )
                 BGainOutlineField(
                     onDateChange = { startDate = it },

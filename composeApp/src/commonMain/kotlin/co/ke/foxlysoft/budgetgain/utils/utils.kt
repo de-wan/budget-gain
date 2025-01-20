@@ -99,16 +99,77 @@ fun isValidAmount(amount: String): Boolean {
     return amount.matches(regex)
 }
 
-fun smsParser(sms: String) {
-    var rules = LinkedHashMap<String, String>()
-    rules["S"] = "[Ref] Confirmed. Ksh(send,till,pochi,paybill)|[Ref] Confirmed. You have received Ksh[Amount] from [Sender] [Phone] on [Date] at [Time] New M-PESA balance is Ksh[Amount].(receive)|[Ref] Confirmed.on (withdraw)|[Ref] Confirmed. Your M-Shwari loan has been approved on [Datetime] and Ksh[Amount] less excise duty has been deposited to your M-PESA account. New M-PESA balance is Ksh[Balance].(mshwariLoan)"
-    rules["Confirmed. Ksh(send,till,pochi,paybill)"] = "[Amount] (send,till,pochi,paybill)*"//
-    rules["Confirmed. You have received Ksh(receive)"] = "[Amount] (receive)"
-    rules["Confirmed.on (withdraw)"] = "[Datetime]Withdraw Ksh[Amount] from [Agent] - [AgentName] New M-PESA balance is Ksh[Balance]. Transaction cost, Ksh[Cost]."
-    rules["[Amount] (send,till,pochi,paybill)"] = "sent to [Recipient] [Phone] on [Date] at [Time]. New M-PESA balance is Ksh[Balance].(send)|sent to [Recipient] on [Date] at [Time]. New M-PESA balance is Ksh[Amount].(pochi)|paid to [Merchant]. on [Date] at [Time]. New M-PESA balance is Ksh[Balance](till)"
+fun smsParser(sms: String): MpesaSms {
+    var result = MpesaSms(
+        smsType = MpesaSmsTypes.UNKNOWN,
+        ref = "",
+        amount = 0L,
+        date = "",
+        time = "",
+        subjectPrimaryIdentifierType = "",
+        subjectPrimaryIdentifier = "",
+        subjectSecondaryIdentifierType = "",
+        subjectSecondaryIdentifier = "",
+        cost = 0L,
+        balance = 0L
+    )
 
     // extract send
+    try {
+        result = extractSendSms(sms)
+        if (result.smsType == MpesaSmsTypes.SEND_MONEY) {
+            return result
+        }
+    } catch (_: Exception) {
+    }
 
+
+    // extract receive
+//    result = extractReceiveSms(sms)
+//    if (result.smsType == MpesaSmsTypes.RECEIVE_MONEY) {
+//        return result
+//    }
+
+    // extract pochi
+    try {
+        result = extractPochiSms(sms)
+        if (result.smsType == MpesaSmsTypes.POCHI) {
+            return result
+        }
+    } catch (_: Exception) {
+    }
+
+
+    // extract till
+    try {
+        result = extractTillSms(sms)
+        if (result.smsType == MpesaSmsTypes.TILL) {
+            return result
+        }
+    } catch (_: Exception) {
+    }
+
+
+    // extract paybill
+    try {
+        result = extractPaybillSms(sms)
+        if (result.smsType == MpesaSmsTypes.PAYBILL) {
+            return result
+        }
+    } catch (_: Exception) {
+    }
+
+
+    // extract withdraw
+    try {
+        result = extractWithdrawSms(sms)
+        if (result.smsType == MpesaSmsTypes.WITHDRAW_MONEY) {
+            return result
+        }
+    } catch (_: Exception) {
+    }
+
+    return result
 }
 
 fun extractSendSms(sms: String): MpesaSms {

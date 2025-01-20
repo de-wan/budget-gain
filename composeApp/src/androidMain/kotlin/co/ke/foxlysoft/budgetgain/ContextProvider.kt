@@ -3,12 +3,14 @@ package co.ke.foxlysoft.budgetgain
 import android.content.Context
 
 object ContextProvider {
-    private lateinit var _context: Context
+    private var applicationContext: Context? = null
 
-    val context: Context
-        get() = _context
+    val context
+        get() =
+            applicationContext
+                ?: error("Android context has not been set. Please call setContext in your Application's onCreate.")
 
     fun setContext(context: Context) {
-        _context = context
+        applicationContext = context.applicationContext
     }
 }

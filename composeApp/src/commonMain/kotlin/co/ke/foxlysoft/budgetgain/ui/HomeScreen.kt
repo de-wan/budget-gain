@@ -1,12 +1,10 @@
 package co.ke.foxlysoft.budgetgain.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,10 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -37,27 +35,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
-import co.ke.foxlysoft.budgetgain.ui.Theme.Green800
-import co.ke.foxlysoft.budgetgain.ui.Theme.Green500
+import co.ke.foxlysoft.budgetgain.shared.PermissionLaucher
+import co.ke.foxlysoft.budgetgain.shared.SmsReader
 import co.ke.foxlysoft.budgetgain.ui.Theme.Green700
-import co.ke.foxlysoft.budgetgain.ui.Theme.Green900
-import co.ke.foxlysoft.budgetgain.ui.Theme.GreenA700
 import co.ke.foxlysoft.budgetgain.ui.Theme.Orange500
+import co.ke.foxlysoft.budgetgain.utils.HomeScreenPageState
+import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.centsToString
-import kotlinx.coroutines.CoroutineScope
+import co.ke.foxlysoft.budgetgain.utils.smsParser
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.ui.tooling.preview.Preview
-
+import kotlinx.coroutines.withContext
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
@@ -69,112 +65,154 @@ fun HomeScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    val firstTime = homeScreenViewModel.firstTime.collectAsState().value
+    // PENDING, NO_CURRENT_BUDGET, COMPLETE, ERROR
+
     val currentBudget = homeScreenViewModel.currentBudget.collectAsState().value
+    val pageState = homeScreenViewModel.pageState.collectAsStateWithLifecycle()
 
     val budgetCategories by remember(currentBudget.id) {
         homeScreenViewModel.getBudgetCategories(currentBudget.id)
     }.collectAsState()
+    var isPermissionGranted by remember {
+        mutableStateOf(false)
+    }
+    PermissionLaucher(
+        onPermissionGranted = {
+            isPermissionGranted = true
+            println("Permission granted")
+        },
+        onPermissionDenied = {
+            isPermissionGranted = false
+        }
+    )
+
 
     Column(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        if (currentBudget.id == 0L) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Column(){
-                    Text(text = "Welcome! to Budget Gain.")
-                    Text(text = "To get started, create a budget.")
-                    Button(onClick = {
-                        onNavigate(Screens.CreateBudgetScreen.route)
-                    }) {
-                        Text(text = "Create Budget")
-                    }
-                }
-
+        when (pageState.value) {
+            HomeScreenPageState.LOADING -> {
+                CircularProgressIndicator()
             }
-
-        } else {
-            Box(
-                modifier = Modifier.padding(16.dp),
-            ){
-                Column(){
-                    Text(
-                        text = currentBudget.name,
-                        fontSize = 18.sp,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-
-                    Text(text = "Initial Balance: ${centsToString(currentBudget.initialBalance)}")
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ){
-                        Column {
-                            Text(text = "Budgeted Amount:")
-                            Text(text = centsToString(currentBudget.budgetedAmount))
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
-                        VerticalDivider(
-                            modifier = Modifier.height(30.dp)
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Column {
-                            Text(text = "Spent Amount:")
-                            Text(text = centsToString(currentBudget.spentAmount))
+            HomeScreenPageState.NO_CURRENT_BUDGET -> {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column{
+                        Text(text = "Welcome! to Budget Gain.")
+                        Text(text = "To get started, create a budget.")
+                        Button(onClick = {
+                            onNavigate(Screens.CreateBudgetScreen.route)
+                        }) {
+                            Text(text = "Create Budget")
                         }
                     }
 
-                    HorizontalDivider()
+                }
+            }
+            HomeScreenPageState.COMPLETE -> {
+                if (isPermissionGranted) {
+                    println("fetching sms")
+                    coroutineScope.launch {
+                        withContext(Dispatchers.Default) {
+                            val rawMpesaSms = SmsReader().getMpesaSms(currentBudget.startDate, currentBudget.endDate)
 
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Box {
-                            Row(
-                                modifier = Modifier.fillMaxWidth()
-                                    .padding(8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Expense Categories",
-                                    style = TextStyle(fontWeight = FontWeight.Bold)
-                                )
-                                IconButton(onClick = {
-                                    onNavigate(
-                                        Screens.AddCategoryScreen.createRoute(
-                                            currentBudget.id
-                                        )
-                                    )
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "Add Category"
-                                    )
+                            for (rawSms in rawMpesaSms) {
+                                val sms = smsParser(rawSms)
+                                if (sms.smsType == MpesaSmsTypes.UNKNOWN) {
+                                    println("Unknown sms: $rawSms")
+                                    continue
                                 }
                             }
                         }
+                    }
 
-                        Column {
-                            budgetCategories.forEach { category ->
-                                CategoryItem(category, onNavigate = onNavigate, onDeleteCategory = {
-                                    coroutineScope.launch {
-                                        homeScreenViewModel.deleteCategory(category)
+                }
+
+                Box(
+                    modifier = Modifier.padding(16.dp),
+                ){
+                    Column{
+                        Text(
+                            text = currentBudget.name,
+                            fontSize = 18.sp,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+
+                        Text(text = "Initial Balance: ${centsToString(currentBudget.initialBalance)}")
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ){
+                            Column {
+                                Text(text = "Budgeted Amount:")
+                                Text(text = centsToString(currentBudget.budgetedAmount))
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            VerticalDivider(
+                                modifier = Modifier.height(30.dp)
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Column {
+                                Text(text = "Spent Amount:")
+                                Text(text = centsToString(currentBudget.spentAmount))
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Expense Categories",
+                                        style = TextStyle(fontWeight = FontWeight.Bold)
+                                    )
+                                    IconButton(onClick = {
+                                        onNavigate(
+                                            Screens.AddCategoryScreen.createRoute(
+                                                currentBudget.id
+                                            )
+                                        )
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add Category"
+                                        )
                                     }
-                                })
-                                Spacer(modifier = Modifier.height(2.dp))
+                                }
+                            }
+
+                            Column {
+                                budgetCategories.forEach { category ->
+                                    CategoryItem(category, onNavigate = onNavigate, onDeleteCategory = {
+                                        coroutineScope.launch {
+                                            homeScreenViewModel.deleteCategory(category)
+                                        }
+                                    })
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                }
                             }
                         }
                     }
                 }
+            }
+            HomeScreenPageState.ERROR -> {
+                Text(text = "Something went wrong!")
             }
         }
     }
 }
+
 
 @Composable
 fun CategoryItem(category: CategoryEntity,
@@ -300,7 +338,7 @@ fun CategoryItem(category: CategoryEntity,
                 )
             }
             LinearProgressIndicator(
-                progress = { progress.toFloat() },
+                progress = { progress },
                 color = progressColor,
                 trackColor = Color.LightGray,
                 modifier = Modifier

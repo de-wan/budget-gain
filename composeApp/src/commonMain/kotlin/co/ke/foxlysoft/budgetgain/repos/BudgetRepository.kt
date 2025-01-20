@@ -1,7 +1,5 @@
 package co.ke.foxlysoft.budgetgain.repos
 
-import co.ke.foxlysoft.budgetgain.database.AccountEntity
-import co.ke.foxlysoft.budgetgain.database.AccountHolderType
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import kotlinx.coroutines.flow.Flow
@@ -18,9 +16,10 @@ class BudgetRepository(
 
     suspend fun deleteBudget(budgetEntity: BudgetEntity) = budgetDao.delete(budgetEntity)
 
-    fun getCurrentBudget(): Flow<BudgetEntity> {
-        return budgetDao.getCurrentBudget()
-            .mapNotNull { it }
+    fun getCurrentBudget(onStarted: () -> Unit, onComplete: (Flow<BudgetEntity?>) -> Unit) {
+        onStarted();
+        val currentBudget = budgetDao.getCurrentBudget()
+        onComplete(currentBudget);
     }
 
     suspend fun getBudget(budgetId: Long): BudgetEntity {

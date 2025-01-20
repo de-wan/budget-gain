@@ -129,7 +129,7 @@ fun AddCategoryScreen(
                 IconButton(onClick = {isCalculatorOpen = true}){
                     Icon(
                         painter = painterResource(Res.drawable.calculator_variant_outline),
-                        contentDescription = "Attach Sms"
+                        contentDescription = "Open Calculator"
                     )
                 }
             }
