@@ -31,6 +31,7 @@ fun CalculatorDialog(
     onDismissRequest: () -> Unit,
     onApply: (result: String) -> Unit,
 ) {
+    var assistText by remember { mutableStateOf("")}
     var displayText by remember { mutableStateOf("0") }
 
     var currentOperator by remember { mutableStateOf<String?>(null) }
@@ -42,11 +43,16 @@ fun CalculatorDialog(
         displayText = text
     }
 
+    fun updateAssistText(text: String) {
+        assistText = text
+    }
+
     fun clearState() {
         currentOperator = null
         operand1 = null
         operand2 = null
         updateDisplay("0")
+        updateAssistText("")
     }
 
     // Perform calculation
@@ -69,6 +75,7 @@ fun CalculatorDialog(
 
     // Handle button click
     fun handleButtonClick(input: String, updateDisplay: (String) -> Unit) {
+        var shouldClearAssistText = false
         when {
             isDigitStr(input) || input == "." -> {
                 if (currentOperator == null) {
@@ -89,8 +96,14 @@ fun CalculatorDialog(
                     operand2 = null
                     currentOperator = null
                     updateDisplay(result)
+                    shouldClearAssistText = true
                 }
             }
+        }
+        if (shouldClearAssistText) {
+            updateAssistText("")
+        } else {
+            updateAssistText((operand1 ?: "") + (currentOperator ?: "") + (operand2 ?: ""))
         }
     }
 
@@ -112,13 +125,15 @@ fun CalculatorDialog(
                 )
 
                 // Display element
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp)
                         .background(MaterialTheme.colorScheme.secondaryContainer)
                         .padding(16.dp), // Inner padding for text
                 ){
+                    Text(text = assistText, style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = displayText,
                         style = MaterialTheme.typography.headlineMedium,
