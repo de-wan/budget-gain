@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -184,17 +185,17 @@ fun TransactionItem(
             if (transaction.description.length > 10) {
                 description = description.substring(0,10)+"..."
             }
-            Column {
+            Column(modifier = Modifier.weight(6f)) {
                 Text(text = "#${transaction.ref}", style = TextStyle(fontSize = 12.sp))
                 Text(text= merchantAccount.merchantName)
                 Text(text= description, style = TextStyle(fontSize = 14.sp))
             }
-            Spacer(modifier = Modifier.weight(1f))
-            Column {
+            Spacer(modifier = Modifier.width(8.dp))
+            Column (modifier = Modifier.weight(3f)) {
                 Text(text = transaction.timestamp, style = TextStyle(fontSize = 12.sp))
                 Text(text = "Ksh${centsToString(transaction.amount)}", style = MaterialTheme.typography.bodyLarge)
             }
-            Box {
+            Box(modifier = Modifier.weight(1f)) {
                 IconButton(onClick = {
                     menuExpanded = true
                 }) {
