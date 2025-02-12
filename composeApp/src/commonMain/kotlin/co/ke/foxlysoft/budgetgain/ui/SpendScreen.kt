@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
@@ -23,15 +24,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
 import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.ic_attach_file
+import co.ke.foxlysoft.budgetgain.shared.getLastCopiedText
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
+import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
 import co.ke.foxlysoft.budgetgain.utils.centsToString
+import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
+import co.ke.foxlysoft.budgetgain.utils.dateTimeMillisToString
+import co.ke.foxlysoft.budgetgain.utils.getMerchantNameFromSms
+import co.ke.foxlysoft.budgetgain.utils.smsParser
+import co.ke.foxlysoft.budgetgain.utils.timeMillisToString
 import co.touchlab.kermit.Logger
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -47,7 +57,8 @@ fun SpendScreen(
             categoryId
         )
     }),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onOpenSnackbar: (String) -> Unit,
 ) {
     val category = spendScreenViewModel.currentCategory.collectAsState().value
 
@@ -62,9 +73,22 @@ fun SpendScreen(
     var merchantErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
     var description by remember { mutableStateOf("") }
     var descriptionErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
-    var timestamp by remember { mutableStateOf("") }
+    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
+    var selectedTime by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var dateTimeString by remember { mutableStateOf("____-__-__ __:__") }
+
+    // Track the combined timestamp
+    var timestamp by remember { mutableStateOf<Long?>(null) }   // selected date time millis
     var timestampErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
+
+//    var dateTimeString by remember { mutableStateOf("____-__-__ __:__") }
+//    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
+
     var submitAttempted by remember { mutableStateOf(false) }
+
+    var spendError by remember { mutableStateOf("") }
+
+
 
     fun clearErrorStatus() {
         refErrorStatus = ErrorStatus(isError = false)
@@ -96,11 +120,37 @@ fun SpendScreen(
                 ErrorStatus(isError = true, errorMsg = "Description is required")
             isValid = false
         }
-        if (timestamp.isEmpty()) {
+        if (timestamp == null || timestamp!! <= 0L) {
             timestampErrorStatus = ErrorStatus(isError = true, errorMsg = "Timestamp is required")
             isValid = false
         }
         return isValid
+    }
+
+    fun pasteSms() {
+        val rawSms = getLastCopiedText()
+        println("rawSms: $rawSms")
+        if (rawSms != null) {
+            try {
+                val sms = smsParser(rawSms)
+                val merchantName = getMerchantNameFromSms(sms)
+                if (sms.smsType != MpesaSmsTypes.UNKNOWN) {
+                    ref = sms.ref
+                    amount = centsToString(sms.amount)
+                    merchant = merchantName
+                    description = "${sms.smsType} subject: ${sms.subjectPrimaryIdentifierType}.${sms.subjectPrimaryIdentifier} ${sms.subjectSecondaryIdentifierType}.${sms.subjectSecondaryIdentifier} amount: ${centsToString(sms.amount)}"
+
+                    timestamp = sms.dateTime
+                    dateTimeString = dateTimeMillisToString(sms.dateTime)
+                    val splitDateTime = dateTimeString.split(" ")
+                    val splitTime = splitDateTime[1].split(":")
+                    selectedTime = splitTime[0].toInt() to splitTime[1].toInt()
+
+                }
+            } catch (e: Exception) {
+                Logger.e("Error pasting sms", e)
+            }
+        }
     }
 
     Column(
@@ -113,7 +163,7 @@ fun SpendScreen(
         ) {
             Text("Spend", style = MaterialTheme.typography.headlineLarge)
             IconButton(onClick = {
-                // TODO: Open sms picker
+                pasteSms()
             }) {
                 Icon(
                     painter = painterResource(Res.drawable.ic_attach_file),
@@ -126,12 +176,14 @@ fun SpendScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text("${category?.name}", style = MaterialTheme.typography.headlineSmall)
-
-
         }
         Text("Category Balance: ${category?.amount?.minus(category.spentAmount)
             ?.let { centsToString(it) }}")
-
+        if (spendError.isNotEmpty()) {
+            Text(text = spendError, style = TextStyle(
+                Color.Red,
+            ))
+        }
         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column {
                 BGainOutlineField(
@@ -240,11 +292,23 @@ fun SpendScreen(
                     submitAttempted = submitAttempted
                 )
                 BGainOutlineField(
-                    onDateChange = { },
+                    Value = dateTimeString,
+                    onDateChange = { millis, dateStr ->
+                        selectedDateMillis = millis
+                        val timePart = selectedTime?.let { "${it.first.toString().padStart(2)}:${it.second.toString().padStart(2)}" } ?: "__:__"
+                        dateTimeString = "$dateStr $timePart"
+                    },
+                    onTimeChange = { hour, minute, fullTime ->
+                        selectedTime = hour to minute
+                        val datePart = selectedDateMillis?.let { dateMillisToString(it) } ?: "____-__-__"
+                        dateTimeString = "$datePart $fullTime"
+                    },
+                    onDateTimeMillisChange = { millis ->
+                        timestamp = millis // Update the combined timestamp
+                    },
                     labelStr = "Select Timestamp",
                     errorStatus = timestampErrorStatus,
                     isDateTimePicker = true,
-                    onDateTimeChange = { timestamp = it },
                     modifier = Modifier
                         .fillMaxWidth(),
                     submitAttempted = submitAttempted
@@ -264,29 +328,34 @@ fun SpendScreen(
                             return@Button
                         }
                         try {
+                            val datePart = selectedDateMillis?.let { dateMillisToString(it) } ?: "____-__-__"
+                            val timePart = selectedTime?.let { "${it.first.toString().padStart(2)}:${it.second.toString().padStart(2)}" } ?: "__:__"
+
+                            var fullDateTime = "$datePart $timePart"
                             spendScreenViewModel.spend(
                                 onComplete = {
-//                                    onNavigateBack()
+                                    onOpenSnackbar("Spend successfully recorded")
+                                    onNavigateBack()
                                 },
                                 onError = {
-//                                    toastManager.showToast("Error")
+                                    spendError = it.message ?: "Error"
                                 },
                                 ref,
                                 merchant,
                                 description,
                                 amountToCents(amount),
-                                timestamp
+                                fullDateTime
                             )
                         } catch (e: Exception) {
                             Logger.e("Error spending", e)
                         }
 
-                        onNavigateBack()
+//                        onNavigateBack()
                     }) {
                         Text(text = "Spend")
                     }
                     FilledTonalButton(onClick = {
-                        onNavigateBack()
+//                        onNavigateBack()
                     }) {
                         Text(text = "Cancel")
                     }

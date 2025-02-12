@@ -180,10 +180,14 @@ fun TransactionItem(
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
+            var description = transaction.description
+            if (transaction.description.length > 10) {
+                description = description.substring(0,10)+"..."
+            }
             Column {
                 Text(text = "#${transaction.ref}", style = TextStyle(fontSize = 12.sp))
                 Text(text= merchantAccount.merchantName)
-                Text(text= transaction.description, style = TextStyle(fontSize = 14.sp))
+                Text(text= description, style = TextStyle(fontSize = 14.sp))
             }
             Spacer(modifier = Modifier.weight(1f))
             Column {

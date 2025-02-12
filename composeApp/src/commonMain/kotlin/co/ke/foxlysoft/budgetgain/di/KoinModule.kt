@@ -11,6 +11,7 @@ import co.ke.foxlysoft.budgetgain.repos.AccountRepository
 import co.ke.foxlysoft.budgetgain.repos.TransactionRepository
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
+import co.ke.foxlysoft.budgetgain.repos.MpesaSmsRepository
 import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.core.context.startKoin
 
@@ -21,6 +22,7 @@ import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.SpendScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.MerchantsScreenViewModel
+import co.ke.foxlysoft.budgetgain.ui.UncategorizedMpesaSmsScreenViewModel
 import org.koin.compose.viewmodel.dsl.viewModel
 
 
@@ -38,6 +40,7 @@ fun initKoin(config: KoinAppDeclaration? = null) =
             provideTransactionRepository,
             provideBudgetRepository,
             provideCategoryRepository,
+            provideMpesaSmsRepository,
             viewModelModule,
         )
     }
@@ -67,6 +70,11 @@ val provideCategoryRepository =
         singleOf(::CategoryRepository)
     }
 
+val provideMpesaSmsRepository =
+    module {
+        singleOf(::MpesaSmsRepository)
+    }
+
 val viewModelModule =
     module {
         viewModelOf(::HomeScreenViewModel)
@@ -91,5 +99,6 @@ val viewModelModule =
                 budgetRepository = get(),
             )
         }
+        viewModelOf(::UncategorizedMpesaSmsScreenViewModel)
         viewModelOf(::MerchantsScreenViewModel)
     }

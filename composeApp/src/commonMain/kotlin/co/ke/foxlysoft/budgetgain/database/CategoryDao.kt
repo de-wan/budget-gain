@@ -25,4 +25,10 @@ interface CategoryDao {
 
     @Query("SELECT * FROM CategoryEntity WHERE id = :categoryId")
     suspend fun getCategory(categoryId: Long): CategoryEntity
+
+    @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId AND name LIKE :search ORDER BY name DESC LIMIT 10")
+    fun searchBudgetCategoriesByName(budgetId: Long, search: String): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM CategoryEntity WHERE name = :name")
+    fun getCategoryByName(name: String): CategoryEntity
 }

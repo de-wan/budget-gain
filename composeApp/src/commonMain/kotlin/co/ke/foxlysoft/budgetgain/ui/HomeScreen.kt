@@ -42,12 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.shared.PermissionLaucher
 import co.ke.foxlysoft.budgetgain.shared.SmsReader
 import co.ke.foxlysoft.budgetgain.ui.Theme.Green700
 import co.ke.foxlysoft.budgetgain.ui.Theme.Orange500
-import co.ke.foxlysoft.budgetgain.utils.HomeScreenPageState
+import co.ke.foxlysoft.budgetgain.utils.QueryState
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.ke.foxlysoft.budgetgain.utils.smsParser
@@ -60,7 +61,7 @@ import org.koin.core.annotation.KoinExperimentalAPI
 @OptIn(KoinExperimentalAPI::class)
 @Composable
 fun HomeScreen(
-    homeScreenViewModel: HomeScreenViewModel = koinViewModel(),
+     homeScreenViewModel: HomeScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -92,10 +93,10 @@ fun HomeScreen(
             .fillMaxSize()
     ) {
         when (pageState.value) {
-            HomeScreenPageState.LOADING -> {
+            QueryState.LOADING -> {
                 CircularProgressIndicator()
             }
-            HomeScreenPageState.NO_CURRENT_BUDGET -> {
+            QueryState.NO_RESULTS -> {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.fillMaxSize()
@@ -112,11 +113,13 @@ fun HomeScreen(
 
                 }
             }
-            HomeScreenPageState.COMPLETE -> {
+            QueryState.COMPLETE -> {
                 if (isPermissionGranted) {
                     println("fetching sms")
                     coroutineScope.launch {
                         withContext(Dispatchers.Default) {
+                            // TODO: get date of last saved sms in budget time range
+
                             val rawMpesaSms = SmsReader().getMpesaSms(currentBudget.startDate, currentBudget.endDate)
 
                             for (rawSms in rawMpesaSms) {
@@ -125,6 +128,21 @@ fun HomeScreen(
                                     println("Unknown sms: $rawSms")
                                     continue
                                 }
+
+                                val mpesaSmsEntity = MpesaSmsEntity(
+                                    smsType = sms.smsType,
+                                    ref = sms.ref,
+                                    amount = sms.amount,
+                                    dateTime = sms.dateTime,
+                                    subjectPrimaryIdentifierType = sms.subjectPrimaryIdentifierType,
+                                    subjectPrimaryIdentifier = sms.subjectPrimaryIdentifier,
+                                    subjectSecondaryIdentifierType = sms.subjectSecondaryIdentifierType,
+                                    subjectSecondaryIdentifier = sms.subjectSecondaryIdentifier,
+                                    cost = sms.cost,
+                                    balance = sms.balance,
+                                )
+
+                                homeScreenViewModel.upsertMpesaSms(mpesaSmsEntity)
                             }
                         }
                     }
@@ -206,7 +224,7 @@ fun HomeScreen(
                     }
                 }
             }
-            HomeScreenPageState.ERROR -> {
+            QueryState.ERROR -> {
                 Text(text = "Something went wrong!")
             }
         }

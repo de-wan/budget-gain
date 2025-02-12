@@ -8,7 +8,7 @@ import androidx.room.RoomDatabaseConstructor
 //import androidx.room.RoomDatabaseConstructor
 
 @Database(entities = [UserEntity::class, SettingsEntity::class, BudgetEntity::class, CategoryEntity::class,
-    AccountEntity::class, TransactionEntity::class], version = 11)
+    AccountEntity::class, TransactionEntity::class, MpesaSmsEntity::class], version = 12)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
@@ -17,6 +17,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun accountDao(): AccountDao
     abstract fun transactionDao(): TransactionDao
+    abstract fun mpesaSmsDao(): MpesaSmsDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

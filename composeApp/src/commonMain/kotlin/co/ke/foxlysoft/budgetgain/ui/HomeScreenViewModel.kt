@@ -4,12 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import co.ke.foxlysoft.budgetgain.database.SettingsEntity
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
+import co.ke.foxlysoft.budgetgain.repos.MpesaSmsRepository
 import co.ke.foxlysoft.budgetgain.repos.SettingsRepository
-import co.ke.foxlysoft.budgetgain.shared.SmsReader
-import co.ke.foxlysoft.budgetgain.utils.HomeScreenPageState
+import co.ke.foxlysoft.budgetgain.utils.QueryState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,11 +21,12 @@ import kotlinx.coroutines.launch
 class HomeScreenViewModel(
     private val settingsRepository: SettingsRepository,
     private val budgetRepository: BudgetRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val mpesaSmsRepository: MpesaSmsRepository
 ) : ViewModel() {
     private val _pageState =
-        MutableStateFlow<HomeScreenPageState>(HomeScreenPageState.LOADING)
-    val pageState: StateFlow<HomeScreenPageState>
+        MutableStateFlow<QueryState>(QueryState.LOADING)
+    val pageState: StateFlow<QueryState>
         get() = _pageState.asStateFlow()
 
     val firstTime: StateFlow<SettingsEntity> = settingsRepository.getSetting("firstTime")
@@ -39,19 +41,23 @@ class HomeScreenViewModel(
     val currentBudget: StateFlow<BudgetEntity>
         get() = _currentBudget.asStateFlow()
 
+    suspend fun upsertMpesaSms(mpesaSmsEntity: MpesaSmsEntity) {
+        mpesaSmsRepository.upsertMpesaSms(mpesaSmsEntity)
+    }
+
     init {
         budgetRepository.getCurrentBudget(
             onStarted = {
-                _pageState.value = HomeScreenPageState.LOADING
+                _pageState.value = QueryState.LOADING
             },
             onComplete = { currentBudgetFlow ->
                 viewModelScope.launch {
                     currentBudgetFlow.collect { currentBudget ->
                         if (currentBudget == null) {
-                            _pageState.value = HomeScreenPageState.NO_CURRENT_BUDGET
+                            _pageState.value = QueryState.NO_RESULTS
                         } else {
                             _currentBudget.value = currentBudget
-                            _pageState.value = HomeScreenPageState.COMPLETE
+                            _pageState.value = QueryState.COMPLETE
                         }
                     }
                 }

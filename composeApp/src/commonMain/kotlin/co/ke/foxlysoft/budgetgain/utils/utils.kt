@@ -1,8 +1,11 @@
 package co.ke.foxlysoft.budgetgain.utils
 
 import androidx.compose.ui.text.input.TextFieldValue
+import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
 import kotlin.math.max
@@ -29,6 +32,34 @@ fun dateMillisToString(millis: Long): String {
 
 fun timeMillisToString(millis: Long): String {
     return Instant.fromEpochMilliseconds(epochMilliseconds = millis).toLocalDateTime(TimeZone.currentSystemDefault()).time.toString()
+}
+
+fun dateTimeMillisToString(millis: Long): String {
+    return Instant.fromEpochMilliseconds(epochMilliseconds = millis).toLocalDateTime(TimeZone.currentSystemDefault()).toString()
+}
+
+// Combine date (millis) and time (hour/minute) into a single timestamp
+fun combineDateTimeMillis(dateMillis: Long, hour: Int, minute: Int): Long {
+    val timeZone = TimeZone.currentSystemDefault()
+
+    val originalDateTime = Instant
+        .fromEpochMilliseconds(dateMillis)
+        .toLocalDateTime(timeZone)
+
+    // Explicitly create a new LocalDateTime with updated hour/minute
+    val updatedDateTime = LocalDateTime(
+        year = originalDateTime.year,
+        month = originalDateTime.month,
+        dayOfMonth = originalDateTime.dayOfMonth,
+        hour = hour,
+        minute = minute,
+        second = originalDateTime.second,
+        nanosecond = originalDateTime.nanosecond
+    )
+
+    return updatedDateTime
+        .toInstant(timeZone)
+        .toEpochMilliseconds()
 }
 
 fun amountToCents(amount: String): Long {
@@ -99,13 +130,54 @@ fun isValidAmount(amount: String): Boolean {
     return amount.matches(regex)
 }
 
+fun mpesaSmsGetDatetime(dateStr: String, timeStr: String) : Long {
+    // Parse the date string
+    val dateParts = dateStr.split("/")
+    val day = dateParts[0].toInt()
+    val month = dateParts[1].toInt()
+    val year = dateParts[2].toInt() + 2000 // Assuming "yy" format for year
+
+    // Parse the time string
+    val timeParts = timeStr.split("[: ]".toRegex())
+    val hour = timeParts[0].toInt() % 12 + if (timeParts[2].equals("PM", ignoreCase = true)) 12 else 0
+    val minute = timeParts[1].toInt()
+
+    // Combine date and time into LocalDateTime
+    val localDateTime = LocalDateTime(year, month, day, hour, minute)
+
+    // Convert LocalDateTime to epoch milliseconds
+    val instant = localDateTime.toInstant(TimeZone.currentSystemDefault())
+    return instant.toEpochMilliseconds()
+}
+
+fun getMerchantNameFromSms(sms: MpesaSmsEntity): String {
+    if (sms.subjectPrimaryIdentifierType == "name") {
+        return sms.subjectPrimaryIdentifier
+    }
+    if (sms.subjectSecondaryIdentifierType == "name") {
+        return sms.subjectSecondaryIdentifier
+    }
+
+    return sms.subjectPrimaryIdentifier
+}
+
+fun getMerchantNameFromSms(sms: MpesaSms): String {
+    if (sms.subjectPrimaryIdentifierType == "name") {
+        return sms.subjectPrimaryIdentifier
+    }
+    if (sms.subjectSecondaryIdentifierType == "name") {
+        return sms.subjectSecondaryIdentifier
+    }
+
+    return sms.subjectPrimaryIdentifier
+}
+
 fun smsParser(sms: String): MpesaSms {
     var result = MpesaSms(
         smsType = MpesaSmsTypes.UNKNOWN,
         ref = "",
         amount = 0L,
-        date = "",
-        time = "",
+        dateTime = 0L,
         subjectPrimaryIdentifierType = "",
         subjectPrimaryIdentifier = "",
         subjectSecondaryIdentifierType = "",
@@ -178,8 +250,7 @@ fun extractSendSms(sms: String): MpesaSms {
         smsType = MpesaSmsTypes.UNKNOWN,
         ref = "",
         amount = 0L,
-        date = "",
-        time = "",
+        dateTime = 0L,
         subjectPrimaryIdentifierType = "",
         subjectPrimaryIdentifier = "",
         subjectSecondaryIdentifierType = "",
@@ -250,7 +321,7 @@ fun extractSendSms(sms: String): MpesaSms {
         dateBuilder.append(sms[i])
         i++
     }
-    mpesaSms.date = dateBuilder.toString()
+    val dateStr = dateBuilder.toString()
 
     x = sms.substring(i, i+4)
     if (x != " at ") {
@@ -264,7 +335,15 @@ fun extractSendSms(sms: String): MpesaSms {
         timeBuilder.append(sms[i])
         i++
     }
-    mpesaSms.time = timeBuilder.toString()
+    val timeStr = timeBuilder.toString()
+
+    // extract dateTime
+    mpesaSms.dateTime = mpesaSmsGetDatetime(dateStr, timeStr)
+
+    // Parse the time string
+    val timeParts = timeStr.split("[: ]".toRegex())
+    val hour = timeParts[0].toInt() % 12 + if (timeParts[2].equals("PM", ignoreCase = true)) 12 else 0
+    val minute = timeParts[1].toInt()
 
     x = sms.substring(i, i+27)
     if (x != ". New M-PESA balance is Ksh") {
@@ -307,8 +386,7 @@ fun extractReceiveSms(sms: String): MpesaSms {
         smsType = MpesaSmsTypes.UNKNOWN,
         ref = "",
         amount = 0L,
-        date = "",
-        time = "",
+        dateTime = 0L,
         subjectPrimaryIdentifierType = "",
         subjectPrimaryIdentifier = "",
         subjectSecondaryIdentifierType = "",
@@ -383,7 +461,7 @@ fun extractReceiveSms(sms: String): MpesaSms {
         dateBuilder.append(sms[i])
         i++
     }
-    mpesaSms.date = dateBuilder.toString()
+    val dateStr = dateBuilder.toString()
 
     x = sms.substring(i, i+4)
     if (x != " at ") {
@@ -397,7 +475,10 @@ fun extractReceiveSms(sms: String): MpesaSms {
         timeBuilder.append(sms[i])
         i++
     }
-    mpesaSms.time = timeBuilder.toString()
+    val timeStr = timeBuilder.toString()
+
+    // extract dateTime
+    mpesaSms.dateTime = mpesaSmsGetDatetime(dateStr, timeStr)
 
     x = sms.substring(i, i+26)
     if (x != " New M-PESA balance is Ksh") {
@@ -424,8 +505,7 @@ fun extractPochiSms(sms: String): MpesaSms {
         smsType = MpesaSmsTypes.UNKNOWN,
         ref = "",
         amount = 0L,
-        date = "",
-        time = "",
+        dateTime = 0L,
         subjectPrimaryIdentifierType = "",
         subjectPrimaryIdentifier = "",
         subjectSecondaryIdentifierType = "",
@@ -486,7 +566,7 @@ fun extractPochiSms(sms: String): MpesaSms {
         dateBuilder.append(sms[i])
         i++
     }
-    mpesaSms.date = dateBuilder.toString()
+    val dateStr = dateBuilder.toString()
 
     x = sms.substring(i, i+4)
     if (x != " at ") {
@@ -500,7 +580,10 @@ fun extractPochiSms(sms: String): MpesaSms {
         timeBuilder.append(sms[i])
         i++
     }
-    mpesaSms.time = timeBuilder.toString()
+    val timeStr = timeBuilder.toString()
+
+    // extract dateTime
+    mpesaSms.dateTime = mpesaSmsGetDatetime(dateStr, timeStr)
 
     x = sms.substring(i, i+27)
     if (x != ". New M-PESA balance is Ksh") {
@@ -542,8 +625,7 @@ fun extractTillSms(sms: String): MpesaSms {
         smsType = MpesaSmsTypes.UNKNOWN,
         ref = "",
         amount = 0L,
-        date = "",
-        time = "",
+        dateTime = 0L,
         subjectPrimaryIdentifierType = "",
         subjectPrimaryIdentifier = "",
         subjectSecondaryIdentifierType = "",
@@ -604,7 +686,7 @@ fun extractTillSms(sms: String): MpesaSms {
         dateBuilder.append(sms[i])
         i++
     }
-    mpesaSms.date = dateBuilder.toString()
+    val dateStr = dateBuilder.toString()
 
     x = sms.substring(i, i+4)
     if (x != " at ") {
@@ -618,7 +700,10 @@ fun extractTillSms(sms: String): MpesaSms {
         timeBuilder.append(sms[i])
         i++
     }
-    mpesaSms.time = timeBuilder.toString()
+    val timeStr = timeBuilder.toString()
+
+    // extract dateTime
+    mpesaSms.dateTime = mpesaSmsGetDatetime(dateStr, timeStr)
 
     x = sms.substring(i, i+26)
     if (x != ".New M-PESA balance is Ksh") {
@@ -660,8 +745,7 @@ fun extractPaybillSms(sms: String): MpesaSms {
         smsType = MpesaSmsTypes.UNKNOWN,
         ref = "",
         amount = 0L,
-        date = "",
-        time = "",
+        dateTime = 0L,
         subjectPrimaryIdentifierType = "",
         subjectPrimaryIdentifier = "",
         subjectSecondaryIdentifierType = "",
@@ -738,7 +822,7 @@ fun extractPaybillSms(sms: String): MpesaSms {
         dateBuilder.append(sms[i])
         i++
     }
-    mpesaSms.date = dateBuilder.toString()
+    val dateStr = dateBuilder.toString()
 
     x = sms.substring(i, i+4)
     if (x != " at ") {
@@ -752,7 +836,10 @@ fun extractPaybillSms(sms: String): MpesaSms {
         timeBuilder.append(sms[i])
         i++
     }
-    mpesaSms.time = timeBuilder.toString()
+    val timeStr = timeBuilder.toString()
+
+    // extract dateTime
+    mpesaSms.dateTime = mpesaSmsGetDatetime(dateStr, timeStr)
 
     x = sms.substring(i, i+26)
     if (x != " New M-PESA balance is Ksh") {
@@ -794,8 +881,7 @@ fun extractWithdrawSms(sms: String): MpesaSms {
         smsType = MpesaSmsTypes.UNKNOWN,
         ref = "",
         amount = 0L,
-        date = "",
-        time = "",
+        dateTime = 0L,
         subjectPrimaryIdentifierType = "",
         subjectPrimaryIdentifier = "",
         subjectSecondaryIdentifierType = "",
@@ -826,7 +912,7 @@ fun extractWithdrawSms(sms: String): MpesaSms {
         dateBuilder.append(sms[i])
         i++
     }
-    mpesaSms.date = dateBuilder.toString()
+    val dateStr = dateBuilder.toString()
 
     x = sms.substring(i, i+4)
     if (x != " at ") {
@@ -840,7 +926,10 @@ fun extractWithdrawSms(sms: String): MpesaSms {
         timeBuilder.append(sms[i])
         i++
     }
-    mpesaSms.time = timeBuilder.toString()
+    val timeStr = timeBuilder.toString()
+
+    // extract dateTime
+    mpesaSms.dateTime = mpesaSmsGetDatetime(dateStr, timeStr)
 
     x = sms.substring(i, i+12)
     if (x != "Withdraw Ksh") {

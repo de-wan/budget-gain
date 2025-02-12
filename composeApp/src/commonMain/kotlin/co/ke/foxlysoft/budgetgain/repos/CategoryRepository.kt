@@ -1,6 +1,7 @@
 package co.ke.foxlysoft.budgetgain.repos
 
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
+import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -27,5 +28,14 @@ class CategoryRepository(
 
     suspend fun getCategory(categoryId: Long): CategoryEntity {
         return categoryDao.getCategory(categoryId)
+    }
+
+    fun searchBudgetCategoriesByName(budgetId: Long, search: String): Flow<List<CategoryEntity>> {
+        println("search: $search")
+        return categoryDao.searchBudgetCategoriesByName(budgetId, "%${search}%")
+    }
+
+    fun getCategoryByName(categoryName: String): CategoryEntity {
+        return categoryDao.getCategoryByName(categoryName)
     }
 }

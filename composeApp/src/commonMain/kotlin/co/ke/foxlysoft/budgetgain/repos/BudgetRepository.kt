@@ -3,7 +3,6 @@ package co.ke.foxlysoft.budgetgain.repos
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.mapNotNull
 
 class BudgetRepository(
     db: AppDatabase
@@ -18,8 +17,12 @@ class BudgetRepository(
 
     fun getCurrentBudget(onStarted: () -> Unit, onComplete: (Flow<BudgetEntity?>) -> Unit) {
         onStarted();
-        val currentBudget = budgetDao.getCurrentBudget()
+        val currentBudget = budgetDao.getCurrentBudgetFlow()
         onComplete(currentBudget);
+    }
+
+    suspend fun getCurrentBudget(): BudgetEntity {
+        return budgetDao.getCurrentBudget();
     }
 
     suspend fun getBudget(budgetId: Long): BudgetEntity {

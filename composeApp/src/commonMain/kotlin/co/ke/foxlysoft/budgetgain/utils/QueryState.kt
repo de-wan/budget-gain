@@ -1,8 +1,8 @@
 package co.ke.foxlysoft.budgetgain.utils
 
-enum class HomeScreenPageState {
+enum class QueryState {
     LOADING,
-    NO_CURRENT_BUDGET,
+    NO_RESULTS,
     COMPLETE,
     ERROR
 }

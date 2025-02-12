@@ -63,6 +63,12 @@ class SpendScreenViewModel(
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
+                    // confirm no transaction with passed ref
+                    if (transactionRepository.existsByRef(ref)) {
+                        onError(Exception("Transaction with similar ref already exists"))
+                        return@withContext
+                    }
+
                     val currentCategoryProxy = currentCategory.value
                     if (currentCategoryProxy == null) {
                         onError(Exception("No category selected"))
@@ -117,11 +123,13 @@ class SpendScreenViewModel(
                     merchantAccount.balance += amount
                     accountRepository.upsertAccount(merchantAccount)
                 }
+
+                onComplete()
             } catch (e: Exception) {
                 Logger.e("Error spending", e)
                 onError(e)
                 return@launch
             }
-        }.invokeOnCompletion { onComplete() }
+        }
     }
 }

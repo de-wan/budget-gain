@@ -14,9 +14,10 @@ import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreen
 import co.ke.foxlysoft.budgetgain.ui.HomeScreen
 import co.ke.foxlysoft.budgetgain.ui.MerchantsScreen
 import co.ke.foxlysoft.budgetgain.ui.SpendScreen
+import co.ke.foxlysoft.budgetgain.ui.UncategorizedMpesaSmsScreen
 
 @Composable
-fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostController = rememberNavController()) {
+fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostController = rememberNavController(), onOpenSnackbar: (String)->Unit = {}) {
     NavHost(
         navController = navHostController,
         modifier = modifier,
@@ -71,7 +72,7 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
                 navArgument("id") {
                     type = NavType.LongType
                     defaultValue = 0L
-                }
+                },
             )
         ) { navBackStackEntry ->
             val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
@@ -79,7 +80,8 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
                 onNavigateBack = {
                     navHostController.popBackStack()
                 },
-                categoryId = id
+                categoryId = id,
+                onOpenSnackbar = onOpenSnackbar
             )
         }
         animatedComposable(
@@ -106,6 +108,15 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
                 onNavigate = { route ->
                     navHostController.navigate(route)
                 },)
+        }
+        animatedComposable(
+            Screens.UncategorizedMpesaSmsScreen.route,
+        ) {
+            UncategorizedMpesaSmsScreen(
+                onNavigate = {route ->
+                    navHostController.navigate(route)
+                }
+            )
         }
     }
 }

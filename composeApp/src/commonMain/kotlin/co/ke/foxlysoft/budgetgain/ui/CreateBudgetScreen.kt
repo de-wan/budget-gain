@@ -166,7 +166,8 @@ fun CreateBudgetScreen(
                     }
                 )
                 BGainOutlineField(
-                    onDateChange = { startDate = it },
+                    onDateChange = { millis, _ ->
+                        startDate = millis },
                     labelStr = "Start Date",
                     errorStatus = startDateErrorStatus,
                     isDatePicker = true,
@@ -175,7 +176,7 @@ fun CreateBudgetScreen(
                     submitAttempted = submitAttempted
                 )
                 BGainOutlineField(
-                    onDateChange = { endDate = it },
+                    onDateChange = { millis, _ ->  endDate =  millis},
                     labelStr = "End Date",
                     errorStatus = endDateErrorStatus,
                     isDatePicker = true,

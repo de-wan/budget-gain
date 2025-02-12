@@ -44,6 +44,7 @@ import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.ic_visibility
 import co.ke.foxlysoft.budgetgain.utils.DateTimePickerState
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
+import co.ke.foxlysoft.budgetgain.utils.combineDateTimeMillis
 import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.painterResource
@@ -64,8 +65,9 @@ fun BGainOutlineField(
     leadingIcon: @Composable() (() -> Unit)? = null,
     trailingIcon: @Composable() (() -> Unit)? = null,
     onValueChange: ((String) -> Unit)? = null,
-    onDateChange: ((Long) -> Unit)? = null,
-    onDateTimeChange: ((String) -> Unit)? = null,
+    onDateChange: ((millis: Long, dateStr: String) -> Unit)? = null,
+    onTimeChange: ((hour: Int, minute: Int, fullTime: String) -> Unit)? = null,
+    onDateTimeMillisChange: ((millis: Long) -> Unit)? = null,
     validator: ((String) -> Unit)? = null,
     submitAttempted: Boolean = false,
 ) {
@@ -75,17 +77,9 @@ fun BGainOutlineField(
 
     var showTimePicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState()
-    val selectedTimeStr = {
-        var result = "__:__"
-        if (timePickerState.hour != 0 || timePickerState.minute != 0) {
-            result = timePickerState.hour.toString().padStart(2, '0') + ":" + timePickerState.minute.toString().padStart(2, '0')
-        }
-        result
-    }
 
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
-    var selectedDateStr by remember { mutableStateOf("____-__-__") }
 
 
 
@@ -97,7 +91,7 @@ fun BGainOutlineField(
         )
     }
 
-    if (isDatePicker) {
+    if (isDatePicker || isDateTimePicker) {
         // Date picker dialog effects
         if (showDatePicker) {
             DatePickerDialog(
@@ -105,11 +99,9 @@ fun BGainOutlineField(
                 confirmButton = {
                     TextButton(onClick = {
                         showDatePicker = false
-                        datePickerState.selectedDateMillis?.let {
-                            if (onDateChange != null) {
-                                onDateChange(it)
-                            }
-                            selectedDateStr = dateMillisToString(it)
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onDateChange?.invoke(millis, dateMillisToString(millis))
+                            if (isDateTimePicker) showTimePicker = true
                         }
 
                     }) {
@@ -131,66 +123,6 @@ fun BGainOutlineField(
             }
         }
 
-        OutlinedTextField(
-            value = selectedDateStr,
-            onValueChange = { },
-            label = bGainlabel,
-            modifier = modifier,
-            readOnly = true,
-            leadingIcon = leadingIcon,
-            isError = (submitAttempted || hasInteracted) && errorStatus.isError,
-            supportingText = {
-                if ((submitAttempted || hasInteracted) && errorStatus.isError) {
-                    errorStatus.errorMsg?.let {
-                        Text(
-                            text = it, modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            },
-            trailingIcon = {
-                IconButton(onClick = { showDatePicker = !showDatePicker }) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Select date"
-                    )
-                }
-            },
-        )
-    } else if (isDateTimePicker) {
-        if (showDatePicker) {
-            DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showDatePicker = false
-                        showTimePicker = true
-                        datePickerState.selectedDateMillis?.let {
-                            if (onDateChange != null) {
-                                onDateChange(it)
-                            }
-                            selectedDateStr = dateMillisToString(it)
-                        }
-                    }) {
-                        Text("OK")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showDatePicker = false
-                    }) {
-                        Text("Cancel")
-                    }
-                },
-            ){
-                DatePicker(
-                            state = datePickerState,
-                            showModeToggle = false
-                        )
-            }
-        }
-
         if (showTimePicker) {
             TimePickerDialog(
                 onCancel = {
@@ -198,7 +130,20 @@ fun BGainOutlineField(
                 },
                 onConfirm = {
                     showTimePicker = false
-                    onDateTimeChange?.invoke("$selectedDateStr ${selectedTimeStr()}")
+                    val hour = timePickerState.hour
+                    val minute = timePickerState.minute
+                    val fullTime = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+                    onTimeChange?.invoke(hour, minute, fullTime) // Notify parent
+
+                    // Calculate combined timestamp if date is already selected
+                    datePickerState.selectedDateMillis?.let { dateMillis ->
+                        val combinedMillis = combineDateTimeMillis(
+                            dateMillis = dateMillis,
+                            hour = hour,
+                            minute = minute
+                        )
+                        onDateTimeMillisChange?.invoke(combinedMillis) // Notify parent
+                    }
                 },
             )
             {
@@ -209,7 +154,7 @@ fun BGainOutlineField(
         }
 
         OutlinedTextField(
-            value = "$selectedDateStr ${selectedTimeStr()}",
+            value = Value,
             onValueChange = { },
             label = bGainlabel,
             modifier = modifier,
