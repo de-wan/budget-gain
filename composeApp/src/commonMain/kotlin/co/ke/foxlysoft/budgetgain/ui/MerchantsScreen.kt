@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
+import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -39,7 +40,7 @@ fun MerchantsScreen(
         Text(text= "Merchant Accounts", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
         merchantAccounts.forEach { account ->
-            MerchantItem(merchantsScreenViewModel, account)
+            MerchantItem(merchantsScreenViewModel, account, onNavigate)
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -47,7 +48,11 @@ fun MerchantsScreen(
 }
 
 @Composable
-fun MerchantItem(merchantsScreenViewModel : MerchantsScreenViewModel, merchantAccount: AccountEntity) {
+fun MerchantItem(
+    merchantsScreenViewModel : MerchantsScreenViewModel,
+    merchantAccount: AccountEntity,
+    onNavigate: (String) -> Unit
+) {
     val totalSpent = centsToString(merchantAccount.balance)
 
     var budgetSpend by remember{mutableStateOf("")}
@@ -55,7 +60,11 @@ fun MerchantItem(merchantsScreenViewModel : MerchantsScreenViewModel, merchantAc
         budgetSpend = centsToString(merchantsScreenViewModel.getMerchantAccountBudgetSpend(merchantAccount.id))
     }
 
-    Card {
+    Card (
+        onClick = {
+            onNavigate(Screens.MerchantTransactionsScreen.createRoute(merchantAccount.id))
+        }
+    ){
         Row(
             modifier = Modifier
                 .fillMaxWidth()

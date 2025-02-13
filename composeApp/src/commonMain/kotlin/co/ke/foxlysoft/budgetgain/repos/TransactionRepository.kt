@@ -14,5 +14,7 @@ class TransactionRepository(db: AppDatabase) {
 
     suspend fun getPagingCategoryTransactions(categoryId: Long, limit: Int, offset: Int) = transactionDao.getPagingCategoryTransactions(categoryId, limit, offset)
 
+    suspend fun getPagingMerchantTransactions(budgetId: Long, accountId: Long, limit: Int, offset: Int) = transactionDao.getPagingMerchantTransactions(budgetId, accountId, limit, offset)
+
     fun existsByRef(ref: String) = transactionDao.existsByRef(ref)
 }

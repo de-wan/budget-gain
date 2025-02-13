@@ -158,6 +158,13 @@ class UncategorizedMpesaSmsScreenViewModel(
     }
 
     private suspend fun categorizeSingleSms(categoryName: String, smsToCategorize: MpesaSmsEntity) {
+        val budget = budgetRepository.getCurrentBudget()
+
+        // check if sms timestamp is within budget time range
+        if (smsToCategorize.dateTime < budget.startDate || smsToCategorize.dateTime > budget.endDate) {
+            return
+        }
+
         val merchantName = getMerchantNameFromSms(smsToCategorize)
 
         // get category id
@@ -177,9 +184,6 @@ class UncategorizedMpesaSmsScreenViewModel(
             accountRepository.upsertAccount(merchantAccount)
             merchantAccount = accountRepository.getByMerchantName(merchantName)
         }
-
-        // Get budget
-        val budget = budgetRepository.getCurrentBudget()
 
         // Get or create main account
         val budgetAccount = accountRepository.getOrCreateBudgetAccount(budget)

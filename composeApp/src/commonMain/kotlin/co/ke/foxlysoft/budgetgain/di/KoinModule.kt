@@ -20,6 +20,7 @@ import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreenViewModel
+import co.ke.foxlysoft.budgetgain.ui.MerchantTransactionsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.SpendScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.MerchantsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.UncategorizedMpesaSmsScreenViewModel
@@ -94,6 +95,14 @@ val viewModelModule =
             (categoryId: Long) -> CategoryDetailsScreenViewModel(
                 categoryId = categoryId,
                 categoryRepository = get(),
+                transactionRepository = get(),
+                accountRepository = get(),
+                budgetRepository = get(),
+            )
+        }
+        viewModel{
+            (merchantId: Long) -> MerchantTransactionsScreenViewModel(
+                merchantId = merchantId,
                 transactionRepository = get(),
                 accountRepository = get(),
                 budgetRepository = get(),

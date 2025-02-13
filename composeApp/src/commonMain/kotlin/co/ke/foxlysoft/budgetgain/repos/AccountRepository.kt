@@ -31,6 +31,10 @@ class AccountRepository(db: AppDatabase) {
         return accountDao.getByMerchantName(merchantName)
     }
 
+    fun getMerchantFlow(merchantId: Long): Flow<AccountEntity> {
+        return accountDao.getAccountFlow(merchantId)
+    }
+
     suspend fun getAccount(accountId: Long): AccountEntity {
         return accountDao.getAccount(accountId)
     }

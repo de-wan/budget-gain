@@ -18,4 +18,7 @@ sealed class Screens(
     }
     data object UncategorizedMpesaSmsScreen : Screens("uncategorizedMpesaSmsScreen")
     data object Merchants: Screens("merchants")
+    data object MerchantTransactionsScreen : Screens("merchantTransactionsScreen/{id}"){
+        fun createRoute(id: Long) = "merchantTransactionsScreen/$id"
+    }
 }

@@ -20,6 +20,9 @@ interface TransactionDao {
     @Query("SELECT * FROM TransactionEntity WHERE categoryId = :categoryId ORDER BY id DESC LIMIT :limit OFFSET :offset")
     suspend fun getPagingCategoryTransactions(categoryId: Long, limit: Int, offset: Int): List<TransactionEntity>
 
+    @Query("SELECT * FROM TransactionEntity WHERE budgetId = :budgetId AND creditAccountId = :accountId ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPagingMerchantTransactions(budgetId: Long, accountId: Long, limit: Int, offset: Int): List<TransactionEntity>
+
     @Query("SELECT EXISTS(SELECT 1 FROM TransactionEntity WHERE ref = :ref)")
     fun existsByRef(ref: String): Boolean
 }

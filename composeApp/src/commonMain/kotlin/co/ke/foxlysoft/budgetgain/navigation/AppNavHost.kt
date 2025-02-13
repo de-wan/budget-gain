@@ -12,6 +12,7 @@ import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreen
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreen
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreen
 import co.ke.foxlysoft.budgetgain.ui.HomeScreen
+import co.ke.foxlysoft.budgetgain.ui.MerchantTransactionsScreen
 import co.ke.foxlysoft.budgetgain.ui.MerchantsScreen
 import co.ke.foxlysoft.budgetgain.ui.SpendScreen
 import co.ke.foxlysoft.budgetgain.ui.UncategorizedMpesaSmsScreen
@@ -117,6 +118,20 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
                     navHostController.navigate(route)
                 },
                 onOpenSnackbar = onOpenSnackbar
+            )
+        }
+        animatedComposable(
+            Screens.MerchantTransactionsScreen.route,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
+        ) { navBackStackEntry ->
+            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            MerchantTransactionsScreen(
+                merchantId = id
             )
         }
     }
