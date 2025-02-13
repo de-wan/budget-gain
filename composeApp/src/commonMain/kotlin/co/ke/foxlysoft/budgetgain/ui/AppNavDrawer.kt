@@ -138,37 +138,37 @@ fun AppNavDrawerContent(modifier: Modifier = Modifier, onCloseDrawer: () -> Unit
 //        selected = false,
 //        onClick = { /*TODO*/ }
 //    )
-    Spacer(modifier = Modifier.height(8.dp))
-    NavigationDrawerItem(
-        label = {
-            Text(text = "My Transactions", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
-        },
-        selected = false,
-        onClick = { /*TODO*/ }
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    HorizontalDivider()
-    Text(
-        text = "Manage Accounts",
-        fontSize = 24.sp,
-        modifier = Modifier.padding(16.dp)
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    NavigationDrawerItem(
-        label = {
-            Text(text = "My Accounts", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
-        },
-        selected = false,
-        onClick = { /*TODO*/ }
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    NavigationDrawerItem(
-        label = {
-            Text(text = "Payers", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
-        },
-        selected = false,
-        onClick = { /*TODO*/ }
-    )
+//    Spacer(modifier = Modifier.height(8.dp))
+//    NavigationDrawerItem(
+//        label = {
+//            Text(text = "My Transactions", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
+//        },
+//        selected = false,
+//        onClick = { /*TODO*/ }
+//    )
+//    Spacer(modifier = Modifier.height(8.dp))
+//    HorizontalDivider()
+//    Text(
+//        text = "Manage Accounts",
+//        fontSize = 24.sp,
+//        modifier = Modifier.padding(16.dp)
+//    )
+//    Spacer(modifier = Modifier.height(8.dp))
+//    NavigationDrawerItem(
+//        label = {
+//            Text(text = "My Accounts", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
+//        },
+//        selected = false,
+//        onClick = { /*TODO*/ }
+//    )
+//    Spacer(modifier = Modifier.height(8.dp))
+//    NavigationDrawerItem(
+//        label = {
+//            Text(text = "Payers", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
+//        },
+//        selected = false,
+//        onClick = { /*TODO*/ }
+//    )
     Spacer(modifier = Modifier.height(8.dp))
     NavigationDrawerItem(
         label = {
