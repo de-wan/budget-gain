@@ -8,7 +8,7 @@ import androidx.room.RoomDatabaseConstructor
 //import androidx.room.RoomDatabaseConstructor
 
 @Database(entities = [UserEntity::class, SettingsEntity::class, BudgetEntity::class, CategoryEntity::class,
-    AccountEntity::class, TransactionEntity::class, MpesaSmsEntity::class], version = 13)
+    AccountEntity::class, TransactionEntity::class, MpesaSmsEntity::class], version = 14)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao

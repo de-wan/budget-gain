@@ -31,4 +31,7 @@ interface AccountDao {
 
     @Query("SELECT * FROM AccountEntity WHERE id = :accountId")
     suspend fun getAccount(accountId: Long): AccountEntity
+
+    @Query("SELECT * FROM TransactionEntity WHERE creditAccountId = :merchantAccountId AND budgetId = :budgetId")
+    suspend fun getMerchantAccountTransactionsForBudget(merchantAccountId: Long, budgetId: Long): List<TransactionEntity>
 }

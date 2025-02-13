@@ -100,6 +100,7 @@ class SpendScreenViewModel(
                         ref = ref,
                         type = AccountType.CREDIT,
                         description = description,
+                        budgetId = budget.id,
                         debitAccountId = budgetAccount.id,
                         creditAccountId = merchantAccount!!.id,
                         categoryId = categoryId,

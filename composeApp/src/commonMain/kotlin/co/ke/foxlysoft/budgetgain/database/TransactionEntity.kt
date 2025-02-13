@@ -10,6 +10,7 @@ data class TransactionEntity(
     val ref: String = "",   // external reference
     val type: AccountType = AccountType.CREDIT, // "debit" or "credit"
     val description: String = "",
+    val budgetId: Long = 0,
     val debitAccountId: Long = 0,
     val creditAccountId: Long = 0,
     val categoryId: Long = 0,

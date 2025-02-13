@@ -4,6 +4,7 @@ import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.AccountHolderType
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
+import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
 class AccountRepository(db: AppDatabase) {
@@ -41,5 +42,9 @@ class AccountRepository(db: AppDatabase) {
     fun getSelectableMerchantAccounts(search: String): Flow<List<AccountEntity>> {
         println("search: $search")
         return accountDao.getSelectableMerchantAccounts(AccountHolderType.MERCHANT, "%${search}%")
+    }
+
+    suspend fun getMerchantAccountTransactionsForBudget(merchantAccountId: Long, budgetId: Long): List<TransactionEntity> {
+        return accountDao.getMerchantAccountTransactionsForBudget(merchantAccountId, budgetId)
     }
 }

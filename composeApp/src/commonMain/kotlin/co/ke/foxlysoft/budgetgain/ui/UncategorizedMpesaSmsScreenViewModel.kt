@@ -193,6 +193,7 @@ class UncategorizedMpesaSmsScreenViewModel(
             ref = smsToCategorize.ref,
             type = AccountType.CREDIT,
             description = "${smsToCategorize.smsType} subject: ${smsToCategorize.subjectPrimaryIdentifierType}.${smsToCategorize.subjectPrimaryIdentifier} ${smsToCategorize.subjectSecondaryIdentifierType}.${smsToCategorize.subjectSecondaryIdentifier} amount: ${centsToString(smsToCategorize.amount)}",
+            budgetId = budget.id,
             debitAccountId = budgetAccount.id,
             creditAccountId = merchantAccount!!.id,
             categoryId = category.id,
