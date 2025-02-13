@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 13,
-    "identityHash": "3e49e147693d411cdc8d925e217a20a0",
+    "identityHash": "c7647e118d959dc402483c1c27b7bf4f",
     "entities": [
       {
         "tableName": "UserEntity",
@@ -186,7 +186,7 @@
       },
       {
         "tableName": "AccountEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` TEXT NOT NULL, `name` TEXT NOT NULL, `holderType` TEXT NOT NULL, `budgetId` INTEGER NOT NULL, `merchantName` TEXT NOT NULL, `merchantIdentifierType` TEXT NOT NULL, `merchantIdentifier` TEXT NOT NULL, `balance` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` TEXT NOT NULL, `name` TEXT NOT NULL, `holderType` TEXT NOT NULL, `budgetId` INTEGER NOT NULL, `merchantName` TEXT NOT NULL, `merchantIdentifierType` TEXT NOT NULL, `merchantIdentifier` TEXT NOT NULL, `merchantDefaultCategoryId` INTEGER NOT NULL, `balance` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -234,6 +234,12 @@
             "fieldPath": "merchantIdentifier",
             "columnName": "merchantIdentifier",
             "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "merchantDefaultCategoryId",
+            "columnName": "merchantDefaultCategoryId",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -327,11 +333,95 @@
             "id"
           ]
         }
+      },
+      {
+        "tableName": "MpesaSmsEntity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `transactionId` INTEGER NOT NULL, `smsType` TEXT NOT NULL, `ref` TEXT NOT NULL, `amount` INTEGER NOT NULL, `dateTime` INTEGER NOT NULL, `subjectPrimaryIdentifierType` TEXT NOT NULL, `subjectPrimaryIdentifier` TEXT NOT NULL, `subjectSecondaryIdentifierType` TEXT NOT NULL, `subjectSecondaryIdentifier` TEXT NOT NULL, `cost` INTEGER NOT NULL, `balance` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transactionId",
+            "columnName": "transactionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "smsType",
+            "columnName": "smsType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ref",
+            "columnName": "ref",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateTime",
+            "columnName": "dateTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectPrimaryIdentifierType",
+            "columnName": "subjectPrimaryIdentifierType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectPrimaryIdentifier",
+            "columnName": "subjectPrimaryIdentifier",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectSecondaryIdentifierType",
+            "columnName": "subjectSecondaryIdentifierType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectSecondaryIdentifier",
+            "columnName": "subjectSecondaryIdentifier",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cost",
+            "columnName": "cost",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "balance",
+            "columnName": "balance",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3e49e147693d411cdc8d925e217a20a0')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c7647e118d959dc402483c1c27b7bf4f')"
     ]
   }
 }

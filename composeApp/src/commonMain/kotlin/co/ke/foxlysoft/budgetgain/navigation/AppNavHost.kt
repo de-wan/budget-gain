@@ -115,7 +115,8 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
             UncategorizedMpesaSmsScreen(
                 onNavigate = {route ->
                     navHostController.navigate(route)
-                }
+                },
+                onOpenSnackbar = onOpenSnackbar
             )
         }
     }

@@ -141,11 +141,13 @@ fun SpendScreen(
                     description = "${sms.smsType} subject: ${sms.subjectPrimaryIdentifierType}.${sms.subjectPrimaryIdentifier} ${sms.subjectSecondaryIdentifierType}.${sms.subjectSecondaryIdentifier} amount: ${centsToString(sms.amount)}"
 
                     timestamp = sms.dateTime
+                    timestamp = sms.dateTime
                     dateTimeString = dateTimeMillisToString(sms.dateTime)
-                    val splitDateTime = dateTimeString.split(" ")
+                    val splitDateTime = dateTimeString.split("T")
                     val splitTime = splitDateTime[1].split(":")
                     selectedTime = splitTime[0].toInt() to splitTime[1].toInt()
 
+                    selectedDateMillis = sms.dateTime
                 }
             } catch (e: Exception) {
                 Logger.e("Error pasting sms", e)

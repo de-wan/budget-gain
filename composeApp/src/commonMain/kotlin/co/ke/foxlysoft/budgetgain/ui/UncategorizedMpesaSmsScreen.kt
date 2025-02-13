@@ -61,6 +61,7 @@ import org.koin.core.annotation.KoinExperimentalAPI
 fun UncategorizedMpesaSmsScreen(
     uncategorizedMpesaSmsScreenViewModel: UncategorizedMpesaSmsScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit,
+    onOpenSnackbar: (String) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val lazyColumnListState = rememberLazyListState()
@@ -266,9 +267,9 @@ fun UncategorizedMpesaSmsScreen(
                     if (dispName.isEmpty()) {
                         dispName = smsToCategorize.value?.subjectPrimaryIdentifier ?: ""
                     }
-                    Text(text = "Categorize all transactions by $dispName")
+                    Text(text = "Categorize all transactions by $dispName", modifier = Modifier.weight(5f))
                     Checkbox(checked = shouldCategorizeSimilarByMerchant,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.weight(1f),
                         onCheckedChange = {
                         shouldCategorizeSimilarByMerchant = !shouldCategorizeSimilarByMerchant
                     })
@@ -289,8 +290,20 @@ fun UncategorizedMpesaSmsScreen(
                             onComplete = {
                                 uncategorizedMpesaSmsScreenViewModel.clearPaging()
                                 uncategorizedMpesaSmsScreenViewModel.getUncategorizedMpesaSms()
+                                onOpenSnackbar("Sms successfully categorized")
+                                showBottomSheet = false
+
+                                // reset form
+                                smsToCategorize.value = null
+                                categoryName = ""
+                                categoryNameErrorStatus = ErrorStatus(isError = false)
+                                categoryNameAutoCompleteExpanded = false
+                                shouldCategorizeSimilarByMerchant = true
+                                submitAttempted = false
                             },
-                            onError = {}
+                            onError = {
+                                onOpenSnackbar("Error categorizing sms: ${it.message}")
+                            }
                         )
 
                         

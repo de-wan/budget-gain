@@ -20,8 +20,11 @@ import co.ke.foxlysoft.budgetgain.repos.TransactionRepository
 import co.ke.foxlysoft.budgetgain.utils.QueryState
 import co.ke.foxlysoft.budgetgain.utils.PaginationState
 import co.ke.foxlysoft.budgetgain.utils.centsToString
+import co.ke.foxlysoft.budgetgain.utils.dateTimeMillisToString
 import co.ke.foxlysoft.budgetgain.utils.getMerchantNameFromSms
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class UncategorizedMpesaSmsScreenViewModel(
     private val mpesaSmsRepository: MpesaSmsRepository,
@@ -156,6 +160,9 @@ class UncategorizedMpesaSmsScreenViewModel(
     private suspend fun categorizeSingleSms(categoryName: String, smsToCategorize: MpesaSmsEntity) {
         val merchantName = getMerchantNameFromSms(smsToCategorize)
 
+        // get category id
+        val category = categoryRepository.getCategoryByName(categoryName)
+
         // Get or create merchant account
         var merchantAccount = accountRepository.getByMerchantName(merchantName)
         if (merchantAccount == null) {
@@ -164,6 +171,7 @@ class UncategorizedMpesaSmsScreenViewModel(
                 name = "$merchantName Account",
                 merchantName = merchantName,
                 balance = 0L,
+                merchantDefaultCategoryId = category.id,
             )
 
             accountRepository.upsertAccount(merchantAccount)
@@ -176,8 +184,9 @@ class UncategorizedMpesaSmsScreenViewModel(
         // Get or create main account
         val budgetAccount = accountRepository.getOrCreateBudgetAccount(budget)
 
-        // get category id
-        val category = categoryRepository.getCategoryByName(categoryName)
+        var transactionTimestamp = dateTimeMillisToString(smsToCategorize.dateTime)
+        // replace T with a space
+        transactionTimestamp = transactionTimestamp.replace("T", " ")
 
         // prepare transaction
         val transaction = TransactionEntity(
@@ -188,7 +197,7 @@ class UncategorizedMpesaSmsScreenViewModel(
             creditAccountId = merchantAccount!!.id,
             categoryId = category.id,
             amount = smsToCategorize.amount,
-            timestamp = smsToCategorize.dateTime.toString(),
+            timestamp = transactionTimestamp,
         )
 
         val transactionId = transactionRepository.upsertTransaction(transaction)
@@ -216,27 +225,29 @@ class UncategorizedMpesaSmsScreenViewModel(
     fun categorizeSms(categoryName: String, smsToCategorize: MpesaSmsEntity, shouldCategorizeSimilarByMerchant: Boolean, onComplete: () -> Unit, onError: (Throwable) -> Unit) {
         viewModelScope.launch {
             try {
-                categorizeSingleSms(categoryName, smsToCategorize)
+                withContext(Dispatchers.IO) {
+                    categorizeSingleSms(categoryName, smsToCategorize)
 
-                if (shouldCategorizeSimilarByMerchant) {
-                    // retrieve all sms with similar identifier
-                    val primaryIdentifier = smsToCategorize.subjectPrimaryIdentifier
-                    val primaryIdentifierType = smsToCategorize.subjectPrimaryIdentifierType
-                    val secondaryIdentifier = smsToCategorize.subjectSecondaryIdentifier
-                    val secondaryIdentifierType = smsToCategorize.subjectSecondaryIdentifierType
+                    if (shouldCategorizeSimilarByMerchant) {
+                        // retrieve all sms with similar identifier
+                        val primaryIdentifier = smsToCategorize.subjectPrimaryIdentifier
+                        val primaryIdentifierType = smsToCategorize.subjectPrimaryIdentifierType
+                        val secondaryIdentifier = smsToCategorize.subjectSecondaryIdentifier
+                        val secondaryIdentifierType = smsToCategorize.subjectSecondaryIdentifierType
 
-                    val smsList = mpesaSmsRepository.getMpesaSmsByIdentifier(
-                        primaryIdentifier,
-                        primaryIdentifierType,
-                        secondaryIdentifier,
-                        secondaryIdentifierType
-                    )
-                    smsList.forEach {
-                        categorizeSingleSms(categoryName, it)
+                        val smsList = mpesaSmsRepository.getMpesaSmsByIdentifier(
+                            primaryIdentifier,
+                            primaryIdentifierType,
+                            secondaryIdentifier,
+                            secondaryIdentifierType
+                        )
+                        smsList.forEach {
+                            categorizeSingleSms(categoryName, it)
+                        }
                     }
-                }
 
-                onComplete()
+                    onComplete()
+                }
             } catch (e: Exception) {
                 Logger.e("Error categorizing mpesa sms", e)
                 onError(e)

@@ -18,6 +18,7 @@ data class AccountEntity (
     val merchantName: String = "",
     val merchantIdentifierType: String = "", // phone, pochiPhone, till, paybillAccount
     val merchantIdentifier: String = "",
+    val merchantDefaultCategoryId: Long = 0L,
 
     var balance: Long = 0, // in cents
     val createdAt: Long = Clock.System.now().epochSeconds,

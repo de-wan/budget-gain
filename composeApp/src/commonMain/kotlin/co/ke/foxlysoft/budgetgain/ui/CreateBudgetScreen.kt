@@ -58,8 +58,10 @@ fun CreateBudgetScreen(
     var budgetAmountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var startDate by remember { mutableStateOf(0L) }
     var startDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+    var startDateString by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf(0L) }
     var endDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
+    var endDateString by remember { mutableStateOf("") }
     var copyCategoriesFrom by remember { mutableStateOf("") }
     var copyCategoriesFromErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var copyCategoriesFromAutoCompleteExpanded by remember { mutableStateOf(false) }
@@ -166,8 +168,10 @@ fun CreateBudgetScreen(
                     }
                 )
                 BGainOutlineField(
-                    onDateChange = { millis, _ ->
-                        startDate = millis },
+                    Value = startDateString,
+                    onDateChange = { millis, dateStr ->
+                        startDate = millis
+                        startDateString = dateStr },
                     labelStr = "Start Date",
                     errorStatus = startDateErrorStatus,
                     isDatePicker = true,
@@ -176,7 +180,11 @@ fun CreateBudgetScreen(
                     submitAttempted = submitAttempted
                 )
                 BGainOutlineField(
-                    onDateChange = { millis, _ ->  endDate =  millis},
+                    Value = endDateString,
+                    onDateChange = { millis, dateStr ->
+                        endDate =  millis
+                        endDateString = dateStr
+                                   },
                     labelStr = "End Date",
                     errorStatus = endDateErrorStatus,
                     isDatePicker = true,

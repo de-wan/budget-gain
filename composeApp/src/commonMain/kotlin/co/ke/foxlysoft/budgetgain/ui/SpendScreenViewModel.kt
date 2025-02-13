@@ -82,6 +82,7 @@ class SpendScreenViewModel(
                             name = "$merchantName Account",
                             merchantName = merchantName,
                             balance = 0L,
+                            merchantDefaultCategoryId = currentCategoryProxy.id,
                         )
 
                         accountRepository.upsertAccount(merchantAccount)
