@@ -95,9 +95,9 @@ fun AppNavDrawerContent(modifier: Modifier = Modifier, onCloseDrawer: () -> Unit
         modifier = Modifier.padding(16.dp)
     )
     HorizontalDivider()
-    Button(onClick = { /*TODO*/ }) {
-        Text(text = "Create Budget")
-    }
+//    Button(onClick = { /*TODO*/ }) {
+//        Text(text = "Create Budget")
+//    }
     NavigationDrawerItem(
         label = {
             Text(text = "Home", fontSize = 16.sp, modifier = Modifier.padding(16.dp))
