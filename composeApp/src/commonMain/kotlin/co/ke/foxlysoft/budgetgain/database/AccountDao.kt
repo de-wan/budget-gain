@@ -26,6 +26,9 @@ interface AccountDao {
     @Query("SELECT * FROM AccountEntity WHERE holderType = :holderType")
     fun getMerchantAccounts(holderType: AccountHolderType = AccountHolderType.MERCHANT): Flow<List<AccountEntity>>
 
+    @Query("SELECT * FROM AccountEntity WHERE holderType = :holderType ORDER BY name DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPagingMerchantAccounts(limit: Int, offset: Int, holderType: AccountHolderType = AccountHolderType.MERCHANT): List<AccountEntity>
+
     @Query("SELECT * FROM AccountEntity WHERE holderType = :holderType AND name LIKE :search ORDER BY name DESC LIMIT 10")
     fun getSelectableMerchantAccounts(holderType: AccountHolderType = AccountHolderType.MERCHANT, search: String = "%%"): Flow<List<AccountEntity>>
 

@@ -39,8 +39,12 @@ class AccountRepository(db: AppDatabase) {
         return accountDao.getAccount(accountId)
     }
 
-   fun getMerchantAccounts(): Flow<List<AccountEntity>> {
+    fun getMerchantAccounts(): Flow<List<AccountEntity>> {
         return accountDao.getMerchantAccounts()
+    }
+
+    suspend fun getPagingMerchantAccounts(limit: Int, offset: Int): List<AccountEntity> {
+        return accountDao.getPagingMerchantAccounts(limit, offset)
     }
 
     fun getSelectableMerchantAccounts(search: String): Flow<List<AccountEntity>> {

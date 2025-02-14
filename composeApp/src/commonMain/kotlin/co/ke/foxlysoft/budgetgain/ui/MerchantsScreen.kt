@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
+import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -31,7 +31,6 @@ fun MerchantsScreen(
     merchantsScreenViewModel: MerchantsScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit,
 ) {
-    val merchantAccounts = merchantsScreenViewModel.merchantAccounts.collectAsState().value
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -39,10 +38,15 @@ fun MerchantsScreen(
     ){
         Text(text= "Merchant Accounts", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
-        merchantAccounts.forEach { account ->
-            MerchantItem(merchantsScreenViewModel, account, onNavigate)
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+        BGPaginatedList(
+            onGetKey = { it.id },
+            onGetItem = { account ->
+                MerchantItem(merchantsScreenViewModel, account, onNavigate)
+            },
+            onGetItems = { limit, offset ->
+                merchantsScreenViewModel.getMerchantAccounts(limit, offset)
+            }
+        )
     }
 
 }
