@@ -17,6 +17,9 @@ interface CategoryDao {
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId")
     fun getBudgetCategoriesFlow(budgetId: Long): Flow<List<CategoryEntity>>
 
+    @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId ORDER BY name DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPagingBudgetCategories(budgetId: Long, limit: Int, offset: Int) : List<CategoryEntity>
+
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId")
     suspend fun getBudgetCategories(budgetId: Long): List<CategoryEntity>
 

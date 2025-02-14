@@ -18,6 +18,8 @@ class CategoryRepository(
         return categoryDao.getBudgetCategoriesFlow(budgetId)
     }
 
+    suspend fun getPagingBudgetCategories(budgetId: Long, limit: Int, offset: Int) = categoryDao.getPagingBudgetCategories(budgetId, limit, offset)
+
     suspend fun getBudgetCategories(budgetId: Long): List<CategoryEntity> {
         return categoryDao.getBudgetCategories(budgetId)
     }

@@ -48,8 +48,9 @@ import co.ke.foxlysoft.budgetgain.shared.PermissionLaucher
 import co.ke.foxlysoft.budgetgain.shared.SmsReader
 import co.ke.foxlysoft.budgetgain.ui.Theme.Green700
 import co.ke.foxlysoft.budgetgain.ui.Theme.Orange500
-import co.ke.foxlysoft.budgetgain.utils.QueryState
+import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
+import co.ke.foxlysoft.budgetgain.utils.QueryState
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.ke.foxlysoft.budgetgain.utils.smsParser
 import kotlinx.coroutines.Dispatchers
@@ -70,10 +71,6 @@ fun HomeScreen(
 
     val currentBudget = homeScreenViewModel.currentBudget.collectAsState().value
     val pageState = homeScreenViewModel.pageState.collectAsStateWithLifecycle()
-
-    val budgetCategories by remember(currentBudget.id) {
-        homeScreenViewModel.getBudgetCategories(currentBudget.id)
-    }.collectAsState()
     var isPermissionGranted by remember {
         mutableStateOf(false)
     }
@@ -211,14 +208,19 @@ fun HomeScreen(
                             }
 
                             Column {
-                                budgetCategories.forEach { category ->
-                                    CategoryItem(category, onNavigate = onNavigate, onDeleteCategory = {
-                                        coroutineScope.launch {
-                                            homeScreenViewModel.deleteCategory(category)
-                                        }
-                                    })
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                }
+                                BGPaginatedList(
+                                    onGetKey = { it.id },
+                                    onGetItem = {
+                                        CategoryItem(it, onNavigate = onNavigate, onDeleteCategory = {
+                                            coroutineScope.launch {
+                                                homeScreenViewModel.deleteCategory(it)
+                                            }
+                                        })
+                                    },
+                                    onGetItems = { limit, offset ->
+                                        homeScreenViewModel.getBudgetCategories(limit, offset)
+                                    }
+                                )
                             }
                         }
                     }
