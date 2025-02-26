@@ -17,7 +17,15 @@ interface CategoryDao {
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId")
     fun getBudgetCategoriesFlow(budgetId: Long): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId ORDER BY name DESC LIMIT :limit OFFSET :offset")
+    @Query("""SELECT * FROM CategoryEntity WHERE budgetId = :budgetId 
+        ORDER BY
+            CASE
+                WHEN amount = 0 THEN 0.0 
+                ELSE (CAST(spentAmount AS FLOAT) / CAST(amount AS FLOAT)) 
+            END ASC, 
+            amount DESC, 
+            name ASC
+        LIMIT :limit OFFSET :offset""")
     suspend fun getPagingBudgetCategories(budgetId: Long, limit: Int, offset: Int) : List<CategoryEntity>
 
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId")
