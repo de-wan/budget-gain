@@ -136,7 +136,7 @@ fun SpendScreen(
                 val merchantName = getMerchantNameFromSms(sms)
                 if (sms.smsType != MpesaSmsTypes.UNKNOWN) {
                     ref = sms.ref
-                    amount = centsToString(sms.amount)
+                    amount = (sms.amount/100).toString()
                     merchant = merchantName
                     description = "${sms.smsType} subject: ${sms.subjectPrimaryIdentifierType}.${sms.subjectPrimaryIdentifier} ${sms.subjectSecondaryIdentifierType}.${sms.subjectSecondaryIdentifier} amount: ${centsToString(sms.amount)}"
 
