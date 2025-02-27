@@ -32,9 +32,12 @@ fun <T> BGPaginatedList(
     onGetItem: @Composable (T) -> Unit,
     onGetSpacer: (@Composable () -> Unit)? = null,
     onGetItems: suspend (limit: Int, offset: Int) -> List<T>,
+    onRefreshReady: (refresh: () -> Unit) -> Unit = {},
+    onRefreshAllPagesReady: (refreshAllPages: () -> Unit) -> Unit = {},
     ) {
     val coroutineScope = rememberCoroutineScope()
 
+    var isFetching by remember { mutableStateOf(false) }
     val itemsList = remember { mutableStateListOf<T>() }
     var page by remember { mutableStateOf(0) }
     var pagingState  by remember { mutableStateOf(PaginationState.LOADING) }
@@ -51,6 +54,9 @@ fun <T> BGPaginatedList(
     }
 
     fun getItemsProxy() {
+        if (isFetching) return
+        isFetching = true
+
         if (page == initialPage || (canPaginate) && pagingState == PaginationState.REQUEST_INACTIVE) {
             pagingState = if (page == initialPage) {
                 PaginationState.LOADING
@@ -92,13 +98,47 @@ fun <T> BGPaginatedList(
                 } else {
                     PaginationState.PAGINATION_EXHAUST
                 }
+            } finally {
+                isFetching = false
             }
         }
     }
 
-    LaunchedEffect(key1 = Unit) {
+    fun refreshAllPages() {
+        val previousLastPage = page
+        clearPaging()
+        itemsList.clear()
+        page = 0
+        pagingState = PaginationState.LOADING
+        canPaginate = false
+
+        coroutineScope.launch {
+            try {
+                for (currentPage in 0..previousLastPage) {
+                    val result = onGetItems(pageSize, currentPage * pageSize)
+                    canPaginate = result.size == pageSize
+                    itemsList.addAll(result)
+
+                    if (!canPaginate) break // Stop if no more data available
+
+                    page++ // Move to next page
+                }
+                pagingState = PaginationState.REQUEST_INACTIVE
+            } catch (e: Exception) {
+                pagingState = PaginationState.ERROR
+            }
+        }
+    }
+
+    fun refresh() {
         clearPaging()
         getItemsProxy()
+    }
+
+    LaunchedEffect(Unit) {
+        onRefreshReady{ refresh() }
+        onRefreshAllPagesReady{ refreshAllPages() }
+        refresh()
     }
 
     val shouldPaginate = remember {
