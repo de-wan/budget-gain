@@ -18,8 +18,10 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -80,6 +82,18 @@ fun AppNavDrawer() {
                 onOpenSnackbar = {msg ->
                     scope.launch {
                         snackbarHostState.showSnackbar(msg)
+                    }
+                },
+                onOpenConfirmSnackbar = { msg, actionLabel, onConfirm ->
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = msg,
+                            actionLabel = actionLabel,
+                            duration = SnackbarDuration.Short
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            onConfirm()
+                        }
                     }
                 }
             )

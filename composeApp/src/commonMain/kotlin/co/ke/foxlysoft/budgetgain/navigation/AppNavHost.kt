@@ -18,7 +18,12 @@ import co.ke.foxlysoft.budgetgain.ui.SpendScreen
 import co.ke.foxlysoft.budgetgain.ui.UncategorizedMpesaSmsScreen
 
 @Composable
-fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostController = rememberNavController(), onOpenSnackbar: (String)->Unit = {}) {
+fun AppNavHost(
+    modifier: Modifier = Modifier,
+    navHostController: NavHostController = rememberNavController(),
+    onOpenSnackbar: (String)->Unit = {},
+    onOpenConfirmSnackbar: (String, String, () -> Unit) -> Unit,
+) {
     NavHost(
         navController = navHostController,
         modifier = modifier,
@@ -99,7 +104,8 @@ fun AppNavHost(modifier: Modifier = Modifier, navHostController: NavHostControll
                 onNavigateBack = {
                     navHostController.popBackStack()
                 },
-                categoryId = id
+                categoryId = id,
+                onOpenConfirmSnackbar = onOpenConfirmSnackbar
             )
         }
         animatedComposable(

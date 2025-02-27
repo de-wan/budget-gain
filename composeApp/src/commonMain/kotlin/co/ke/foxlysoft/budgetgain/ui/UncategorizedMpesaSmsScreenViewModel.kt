@@ -62,7 +62,7 @@ class UncategorizedMpesaSmsScreenViewModel(
     val pagingState: StateFlow<PaginationState>
         get() = _pagingState.asStateFlow()
 
-    var page = CategoryDetailsScreenViewModel.INITIAL_PAGE
+    var page = INITIAL_PAGE
     var canPaginate by mutableStateOf(false)
 
     private val _currentBudget =

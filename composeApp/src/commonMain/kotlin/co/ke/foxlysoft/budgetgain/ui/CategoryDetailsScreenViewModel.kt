@@ -28,30 +28,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CategoryDetailsScreenViewModel(
-    categoryId: Long,
+    private val categoryId: Long,
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
     private val budgetRepository: BudgetRepository,
 ): ViewModel() {
-    companion object {
-        const val PAGE_SIZE = 5
-        const val INITIAL_PAGE = 0
-    }
-
-    private val _transactionsList =
-        MutableStateFlow<List<TransactionEntity>>(emptyList())
-    val transactionsList: StateFlow<List<TransactionEntity>>
-        get() = _transactionsList.asStateFlow()
-
-    private val _pagingState =
-        MutableStateFlow<PaginationState>(PaginationState.LOADING)
-    val pagingState: StateFlow<PaginationState>
-        get() = _pagingState.asStateFlow()
-
-    private var page = INITIAL_PAGE
-    var canPaginate by mutableStateOf(false)
-
     val currentCategory: StateFlow<CategoryEntity> = categoryRepository.getCategoryFlow(categoryId)
         .stateIn(
             scope = viewModelScope,
@@ -66,45 +48,8 @@ class CategoryDetailsScreenViewModel(
             )
         )
 
-    fun getCategoryTransactions(categoryId: Long) {
-        if (page == INITIAL_PAGE || (canPaginate) && _pagingState.value == PaginationState.REQUEST_INACTIVE) {
-            _pagingState.update { if (page == INITIAL_PAGE) PaginationState.LOADING else PaginationState.PAGINATING }
-        }
-
-        viewModelScope.launch {
-            try {
-                val result = transactionRepository.getPagingCategoryTransactions(categoryId, PAGE_SIZE, page * PAGE_SIZE)
-                canPaginate = result.size == PAGE_SIZE
-
-                if (page == INITIAL_PAGE) {
-                    if (result.isEmpty()) {
-                        _pagingState.update { PaginationState.EMPTY }
-                        return@launch
-                    }
-                    _transactionsList.value = result
-                } else {
-                    _transactionsList.value += result
-                }
-
-                _pagingState.update { PaginationState.REQUEST_INACTIVE }
-
-                if (canPaginate) {
-                    page++
-                }
-
-                if (!canPaginate) {
-                    _pagingState.update { PaginationState.PAGINATION_EXHAUST }
-                }
-            } catch (e: Exception) {
-                _pagingState.update { if (page == INITIAL_PAGE) PaginationState.ERROR else PaginationState.PAGINATION_EXHAUST }
-            }
-        }
-    }
-
-    fun clearPaging() {
-        page = 0
-        _pagingState.update { PaginationState.LOADING }
-        canPaginate = false
+    suspend fun getCategoryTransactions(limit: Int, offset: Int): List<TransactionEntity> {
+        return transactionRepository.getPagingCategoryTransactions(categoryId, limit, offset)
     }
 
     fun getMerchantAccount(transaction: TransactionEntity, onComplete: (AccountEntity) -> Unit) {
@@ -117,7 +62,7 @@ class CategoryDetailsScreenViewModel(
     }
 
     @Transaction
-    fun deleteTransaction(transaction: TransactionEntity) {
+    fun deleteTransaction(transaction: TransactionEntity, refreshAllPages: () -> Unit) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 // update credit account balance
@@ -143,7 +88,7 @@ class CategoryDetailsScreenViewModel(
                 // delete transaction
                 transactionRepository.deleteTransaction(transaction)
 
-                _transactionsList.value = _transactionsList.value.filter { it.id != transaction.id }
+                refreshAllPages()
             }
         }
     }
