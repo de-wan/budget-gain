@@ -53,38 +53,15 @@ import org.koin.core.parameter.parametersOf
 fun CategoryDetailsScreen(
     categoryId: Long,
     categoryDetailsScreenViewModel: CategoryDetailsScreenViewModel = koinViewModel(parameters = { parametersOf(categoryId) }),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onOpenConfirmSnackbar: (msg: String, actionLabel: String, onConfirm: () -> Unit) -> Unit
 ){
     val category = categoryDetailsScreenViewModel.currentCategory.collectAsState().value
 
     val lazyColumnListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-
-    val transactionsList by categoryDetailsScreenViewModel.transactionsList.collectAsStateWithLifecycle()
-    val pagingState = categoryDetailsScreenViewModel.pagingState.collectAsStateWithLifecycle()
-
-    val testList = listOf("Item 1", "Item 2", "Item 3")
-
-    LaunchedEffect(key1 = Unit) {
-        categoryDetailsScreenViewModel.clearPaging()
-        categoryDetailsScreenViewModel.getCategoryTransactions(categoryId)
-    }
-
-    val shouldPaginate = remember {
-        derivedStateOf {
-            categoryDetailsScreenViewModel.canPaginate && (
-                    lazyColumnListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-                        ?: -5
-                    ) >= (lazyColumnListState.layoutInfo.totalItemsCount - 3)
-        }
-    }
-
-    LaunchedEffect(key1 = shouldPaginate.value) {
-        if (shouldPaginate.value && pagingState.value == PaginationState.REQUEST_INACTIVE) {
-            categoryDetailsScreenViewModel.getCategoryTransactions(categoryId)
-        }
-    }
+    var refreshAllPages by remember { mutableStateOf({}) }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -113,7 +90,15 @@ fun CategoryDetailsScreen(
                 ) { index ->
                     TransactionItem(categoryDetailsScreenViewModel, transactionsList[index], onDelete = {
                         // TODO: add a confirmation dialog
-                        categoryDetailsScreenViewModel.deleteTransaction(transactionsList[index])
+                        onOpenConfirmSnackbar(
+                            "Are you sure you want to delete?",
+                            "Confirm",
+                            {
+                                // Perform the delete action
+                                categoryDetailsScreenViewModel.deleteTransaction(it, refreshAllPages)
+                            }
+                        )
+
                     })
                     Spacer(modifier = Modifier.height(10.dp))
                 }
