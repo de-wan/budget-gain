@@ -104,7 +104,8 @@ fun AppNavHost(
                 onNavigateBack = {
                     navHostController.popBackStack()
                 },
-                categoryId = id
+                categoryId = id,
+                onOpenConfirmSnackbar = onOpenConfirmSnackbar
             )
         }
         animatedComposable(

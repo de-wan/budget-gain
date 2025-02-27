@@ -42,8 +42,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
+import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.utils.PaginationState
 import co.ke.foxlysoft.budgetgain.utils.centsToString
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.parameter.parametersOf
@@ -57,8 +59,6 @@ fun CategoryDetailsScreen(
     onOpenConfirmSnackbar: (msg: String, actionLabel: String, onConfirm: () -> Unit) -> Unit
 ){
     val category = categoryDetailsScreenViewModel.currentCategory.collectAsState().value
-
-    val lazyColumnListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     var refreshAllPages by remember { mutableStateOf({}) }
@@ -79,16 +79,10 @@ fun CategoryDetailsScreen(
                 contentColor = MaterialTheme.colorScheme.onSurface
             )
         ) {
-            LazyColumn(
-                state = lazyColumnListState,
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                items(
-                    transactionsList.size,
-                    key = { transactionsList[it].id },
-                ) { index ->
-                    TransactionItem(categoryDetailsScreenViewModel, transactionsList[index], onDelete = {
+            BGPaginatedList(
+                onGetKey = { it.id },
+                onGetItem = {
+                    TransactionItem(categoryDetailsScreenViewModel, it, onDelete = {
                         // TODO: add a confirmation dialog
                         onOpenConfirmSnackbar(
                             "Are you sure you want to delete?",
@@ -100,44 +94,12 @@ fun CategoryDetailsScreen(
                         )
 
                     })
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-            }
-        }
-
-        when (pagingState.value) {
-            PaginationState.LOADING -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            PaginationState.REQUEST_INACTIVE -> {
-//                Text(text = "Request Inactive")
-            }
-            PaginationState.PAGINATING -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            PaginationState.ERROR -> {
-//                Text(text = "Error")
-            }
-            PaginationState.PAGINATION_EXHAUST -> {
-//                Text(text = "Pagination Exhaust")
-            }
-            PaginationState.EMPTY -> {
-//                Text(text = "Empty")
-            }
+                },
+                onGetItems = { limit, offset ->
+                    categoryDetailsScreenViewModel.getCategoryTransactions(limit, offset)
+                },
+                onRefreshAllPagesReady = { refreshAllPages = it },
+            )
         }
     }
 }
