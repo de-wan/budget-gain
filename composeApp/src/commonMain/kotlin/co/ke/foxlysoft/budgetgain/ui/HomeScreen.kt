@@ -317,7 +317,7 @@ fun CategoryItem(category: CategoryEntity,
                                 Text("View Details")
                             })
                         DropdownMenuItem(onClick = {
-                            //                onNavigate(Screens.CategoryEditScreen.createRoute(category.id))
+                            onNavigate(Screens.EditCategoryScreen.createRoute(category.id))
                             menuExpanded = false
                         },
                             text = {
