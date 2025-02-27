@@ -157,12 +157,22 @@ fun HomeScreen(
                         )
 
                         Text(text = "Initial Balance: ${centsToString(currentBudget.initialBalance)}")
+                        Text(text = "Current Balance: ${centsToString(currentBudget.initialBalance - currentBudget.spentAmount)}")
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ){
                             Column {
-                                Text(text = "Budgeted Amount:")
+                                Text(text = "UnBudgeted:")
+                                Text(text = centsToString(currentBudget.initialBalance - currentBudget.budgetedAmount))
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            VerticalDivider(
+                                modifier = Modifier.height(30.dp)
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Column {
+                                Text(text = "Budgeted:")
                                 Text(text = centsToString(currentBudget.budgetedAmount))
                             }
                             Spacer(modifier = Modifier.weight(1f))
@@ -171,7 +181,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             Column {
-                                Text(text = "Spent Amount:")
+                                Text(text = "Spent:")
                                 Text(text = centsToString(currentBudget.spentAmount))
                             }
                         }
