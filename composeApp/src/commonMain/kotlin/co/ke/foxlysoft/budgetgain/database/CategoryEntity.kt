@@ -8,8 +8,8 @@ import kotlinx.datetime.Clock
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val budgetId: Long,
-    val name: String,
-    val amount: Long,   // amount in cents
+    var name: String,
+    var amount: Long,   // amount in cents
     var spentAmount: Long,   // amount in cents
     val createdAt: Long = Clock.System.now().epochSeconds,
 )
