@@ -47,7 +47,11 @@ import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.shared.PermissionLaucher
 import co.ke.foxlysoft.budgetgain.shared.SmsReader
 import co.ke.foxlysoft.budgetgain.ui.Theme.Green700
+import co.ke.foxlysoft.budgetgain.ui.Theme.Indigo500
 import co.ke.foxlysoft.budgetgain.ui.Theme.Orange500
+import co.ke.foxlysoft.budgetgain.ui.Theme.Purple400
+import co.ke.foxlysoft.budgetgain.ui.Theme.Purple500
+import co.ke.foxlysoft.budgetgain.ui.Theme.Purple600
 import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.QueryState
@@ -266,6 +270,7 @@ fun CategoryItem(category: CategoryEntity,
     val progressColor = when {
         progress < 0.5f -> Green700
         progress < 0.8f -> Orange500
+        progress <= 1f -> Purple400
         else -> Color.Red
     }
 
