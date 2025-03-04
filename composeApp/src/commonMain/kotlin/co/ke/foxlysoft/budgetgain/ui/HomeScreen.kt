@@ -261,9 +261,8 @@ fun CategoryItem(category: CategoryEntity,
 
     var progress = 0F
     if (floatSpentAmount != 0F && floatAmount != 0F) {
-        progress = (floatSpentAmount / floatAmount).coerceIn(
-            0F,
-            1F
+        progress = (floatSpentAmount / floatAmount).coerceAtLeast(
+            0F
         ) // Ensure the progress is between 0 and 1
     }
     // Determine the color based on progress
@@ -273,6 +272,8 @@ fun CategoryItem(category: CategoryEntity,
         progress <= 1f -> Purple400
         else -> Color.Red
     }
+
+    val cappedProgress = progress.coerceIn(0F, 1F)
 
     Card {
         Column(
@@ -373,7 +374,7 @@ fun CategoryItem(category: CategoryEntity,
                 )
             }
             LinearProgressIndicator(
-                progress = { progress },
+                progress = { cappedProgress },
                 color = progressColor,
                 trackColor = Color.LightGray,
                 modifier = Modifier
