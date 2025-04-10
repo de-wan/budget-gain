@@ -76,6 +76,15 @@ class SmsParseTest {
         assertEquals(100000000, t.balance)
         assertEquals(0, t.cost)
         assertEquals(MpesaSmsTypes.TILL, t.smsType)
+
+        val tillSms2 = "TC13XMX0IH Confirmed. Ksh75.00 paid to CARREFOUR GCM 04. on 1/3/25 at 3:23 PM.New M-PESA balance is Ksh8,851.09. Transaction cost, Ksh0.00. Amount you can transact within the day is 499,795.00. Save frequent Tills for quick payment on M-PESA app https://bit.ly/mpesalnk"
+        val t2 = extractTillSms(tillSms2)
+        assertEquals(MpesaSmsTypes.TILL, t2.smsType)
+        assertEquals("CARREFOUR GCM 04", t2.subjectPrimaryIdentifier)
+        assertEquals("name", t2.subjectPrimaryIdentifierType)
+        assertEquals(885109, t2.balance)
+        assertEquals(0, t2.cost)
+        assertEquals(7500, t2.amount)
     }
 
     @Test
