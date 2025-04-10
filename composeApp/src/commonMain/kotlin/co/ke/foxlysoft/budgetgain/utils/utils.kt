@@ -666,7 +666,7 @@ fun extractTillSms(sms: String): MpesaSms {
 
     val recipientName = StringBuilder()
     // loop until we find a digit or plus or followed by ". on "
-    while (i < sms.length && !isDigit(sms[i]) && sms[i] != '+' && !followedBy(sms, i, ". on ")) {
+    while (i < sms.length && sms[i] != '+' && !followedBy(sms, i, ". on ")) {
         recipientName.append(sms[i])
         i++
     }

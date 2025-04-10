@@ -37,7 +37,7 @@ class CategoryRepository(
         return categoryDao.searchBudgetCategoriesByName(budgetId, "%${search}%")
     }
 
-    fun getCategoryByName(categoryName: String): CategoryEntity {
-        return categoryDao.getCategoryByName(categoryName)
+    fun getBudgetCategoryByName(budgetId: Long, categoryName: String): CategoryEntity {
+        return categoryDao.getBudgetCategoryByName(budgetId, categoryName)
     }
 }

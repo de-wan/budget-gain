@@ -168,7 +168,7 @@ class UncategorizedMpesaSmsScreenViewModel(
         val merchantName = getMerchantNameFromSms(smsToCategorize)
 
         // get category id
-        val category = categoryRepository.getCategoryByName(categoryName)
+        val category = categoryRepository.getBudgetCategoryByName(budget.id, categoryName)
 
         // Get or create merchant account
         var merchantAccount = accountRepository.getByMerchantName(merchantName)

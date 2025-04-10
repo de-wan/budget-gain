@@ -40,6 +40,6 @@ interface CategoryDao {
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId AND name LIKE :search ORDER BY name DESC LIMIT 10")
     fun searchBudgetCategoriesByName(budgetId: Long, search: String): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM CategoryEntity WHERE name = :name")
-    fun getCategoryByName(name: String): CategoryEntity
+    @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId AND name = :name")
+    fun getBudgetCategoryByName(budgetId: Long, name: String): CategoryEntity
 }
