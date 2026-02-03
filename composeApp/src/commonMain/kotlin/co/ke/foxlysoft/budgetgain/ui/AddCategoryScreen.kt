@@ -75,7 +75,7 @@ fun AddCategoryScreen(
             val maxAmount = currentBudget.initialBalance - currentBudget.budgetedAmount
             Logger.d("maxAmount: $maxAmount")
             if (amountToCents(categoryAmount) > maxAmount) {
-                categoryAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Amount exceeds maximum")
+                categoryAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Amount exceeds maximum of ${centsToString(maxAmount)}")
                 isValid = false
             }
         }
