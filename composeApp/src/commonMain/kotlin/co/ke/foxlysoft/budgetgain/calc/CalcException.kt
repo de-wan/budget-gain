@@ -1,7 +1,7 @@
 package co.ke.foxlysoft.budgetgain.calc
 
 /**
- * Generic Keval Exception
+ * Generic Calc Exception
  *
  * @param message is the message to display in the stacktrace
  */

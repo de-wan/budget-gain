@@ -29,7 +29,7 @@ class CalcBuilder internal constructor(
     }
 
     /**
-     * Defines a unary operator for the current Keval instance.
+     * Defines a unary operator for the current Calc instance.
      *
      * @param definition A lambda function that configures a UnaryOperatorBuilder instance.
      */
@@ -40,7 +40,7 @@ class CalcBuilder internal constructor(
     }
 
     /**
-     * Defines a function for the current Keval instance.
+     * Defines a function for the current Calc instance.
      *
      * @param definition A lambda function that configures a FunctionBuilder instance.
      */
@@ -51,7 +51,7 @@ class CalcBuilder internal constructor(
     }
 
     /**
-     * Defines a constant for the current Keval instance.
+     * Defines a constant for the current Calc instance.
      *
      * @param definition A lambda function that configures a ConstantBuilder instance.
      */
