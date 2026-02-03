@@ -116,6 +116,11 @@ fun formatWithCommas(number: Long): String {
     return sb.toString()
 }
 
+fun formatWithCommas(number: Double): String {
+    val cents = amountToCents(number.toString())
+    return centsToString(cents)
+}
+
 fun isDigit(c: Char): Boolean {
     return c in '0'..'9'
 }
