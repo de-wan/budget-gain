@@ -2,7 +2,7 @@ package co.ke.foxlysoft.budgetgain.database
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 @Entity
 data class TransactionEntity(
