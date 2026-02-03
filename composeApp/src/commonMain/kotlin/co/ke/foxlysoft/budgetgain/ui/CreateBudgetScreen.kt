@@ -33,7 +33,7 @@ import budgetgain.composeapp.generated.resources.calculator_variant_outline
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
-import co.ke.foxlysoft.budgetgain.ui.components.CalculatorDialog
+import co.ke.foxlysoft.budgetgain.calc.CalculatorDialog
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
 import co.ke.foxlysoft.budgetgain.utils.isValidAmount

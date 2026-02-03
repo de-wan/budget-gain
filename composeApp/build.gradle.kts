@@ -60,6 +60,8 @@ kotlin {
             implementation(libs.koin.composeVM)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kermit)
+
+            implementation(libs.material.icons.extended)
         }
         iosMain.dependencies {
         }

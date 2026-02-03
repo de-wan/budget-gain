@@ -1,27 +1,28 @@
 [versions]
-agp = "8.2.2"
-android-compileSdk = "34"
+agp = "8.11.2"
+android-compileSdk = "36"
 android-minSdk = "24"
-android-targetSdk = "34"
-androidx-activityCompose = "1.9.3"
-androidx-appcompat = "1.7.0"
-androidx-constraintlayout = "2.1.4"
-androidx-core-ktx = "1.13.1"
-androidx-espresso-core = "3.6.1"
-androidx-lifecycle = "2.8.3"
-androidx-material = "1.12.0"
-androidx-test-junit = "1.2.1"
-compose-multiplatform = "1.7.0"
+android-targetSdk = "36"
+androidx-activityCompose = "1.12.3"
+androidx-appcompat = "1.7.1"
+androidx-constraintlayout = "2.2.1"
+androidx-core-ktx = "1.17.0"
+androidx-espresso-core = "3.7.0"
+androidx-lifecycle = "2.9.6"
+androidx-material = "1.13.0"
+materialIconsExtended = "1.7.3"
+androidx-test-junit = "1.3.0"
+compose-multiplatform = "1.10.0"
 junit = "4.13.2"
-kermit = "2.0.4"
-kotlin = "2.0.21"
-androidx-navigation = "2.7.0-alpha06"
-room = "2.7.0-alpha11"
-ksp = "2.0.21-1.0.25"
-sqlite = "2.5.0-SNAPSHOT"
-koin = "3.6.0-Beta4"
-koin-compose = "1.2.0-Beta4"
-kotlinxDatetime = "0.6.1"
+kermit = "2.0.8"
+kotlin = "2.3.0"
+androidx-navigation = "2.9.1"
+room = "2.8.4"
+ksp = "2.3.2"
+sqlite = "2.6.2"
+koin = "4.1.1"
+koin-compose = "4.1.1"
+kotlinxDatetime = "0.7.1"
 
 [libraries]
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
@@ -33,6 +34,7 @@ androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidx-espresso-core" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidx-appcompat" }
 androidx-material = { group = "com.google.android.material", name = "material", version.ref = "androidx-material" }
+material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "androidx-constraintlayout" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }

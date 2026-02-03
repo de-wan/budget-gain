@@ -15,6 +15,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,9 +27,10 @@ import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.calculator_variant_outline
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
-import co.ke.foxlysoft.budgetgain.ui.components.CalculatorDialog
+import co.ke.foxlysoft.budgetgain.calc.CalculatorDialog
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
+import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.ke.foxlysoft.budgetgain.utils.isValidAmount
 import co.touchlab.kermit.Logger
 import org.jetbrains.compose.resources.painterResource
@@ -44,6 +46,7 @@ fun AddCategoryScreen(
 ) {
     var submitAttempted by remember { mutableStateOf(false) }
 
+    val currentBudget = addCategoryScreenViewModel.currentBudget.collectAsState().value
     var categoryName by remember { mutableStateOf("") }
     var categoryNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
     var categoryAmount by remember { mutableStateOf("") }
@@ -68,6 +71,13 @@ fun AddCategoryScreen(
         } else if (categoryAmount.toDoubleOrNull() == null) {
             categoryAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Invalid Amount")
             isValid = false
+        } else {
+            val maxAmount = currentBudget.initialBalance - currentBudget.budgetedAmount
+            Logger.d("maxAmount: $maxAmount")
+            if (amountToCents(categoryAmount) > maxAmount) {
+                categoryAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Amount exceeds maximum")
+                isValid = false
+            }
         }
 
         return isValid
@@ -105,6 +115,7 @@ fun AddCategoryScreen(
             },
             submitAttempted = submitAttempted
         )
+        Text("Max: ${centsToString(currentBudget.initialBalance - currentBudget.budgetedAmount)}")
         BGainOutlineField(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -126,7 +137,9 @@ fun AddCategoryScreen(
             },
             submitAttempted = submitAttempted,
             trailingIcon = {
-                IconButton(onClick = {isCalculatorOpen = true}){
+                IconButton(onClick = {
+                    isCalculatorOpen = true
+                }){
                     Icon(
                         painter = painterResource(Res.drawable.calculator_variant_outline),
                         contentDescription = "Open Calculator"
