@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 14,
-    "identityHash": "d164e360fce339481bce8cf569a1dccf",
+    "identityHash": "5097100d1d2fc072e010c622843da87a",
     "entities": [
       {
         "tableName": "UserEntity",
@@ -72,7 +72,7 @@
       },
       {
         "tableName": "BudgetEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `initialBalance` INTEGER NOT NULL, `budgetedAmount` INTEGER NOT NULL, `spentAmount` INTEGER NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `yearMonth` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `initialBalance` INTEGER NOT NULL, `budgetedAmount` INTEGER NOT NULL, `spentAmount` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -81,8 +81,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "name",
-            "columnName": "name",
+            "fieldPath": "yearMonth",
+            "columnName": "yearMonth",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -107,18 +107,6 @@
           {
             "fieldPath": "spentAmount",
             "columnName": "spentAmount",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "startDate",
-            "columnName": "startDate",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "endDate",
-            "columnName": "endDate",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -427,7 +415,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd164e360fce339481bce8cf569a1dccf')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5097100d1d2fc072e010c622843da87a')"
     ]
   }
 }

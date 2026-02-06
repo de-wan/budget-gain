@@ -1,28 +1,32 @@
 package co.ke.foxlysoft.budgetgain.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -35,19 +39,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
 import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.ic_visibility
-import co.ke.foxlysoft.budgetgain.utils.DateTimePickerState
+import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.combineDateTimeMillis
 import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
-import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.Clock
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +63,7 @@ fun BGainOutlineField(
     errorStatus: ErrorStatus,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     isPasswordField: Boolean = false,
+    isMonthPicker: Boolean = false,
     isDatePicker: Boolean = false,
     isDateTimePicker: Boolean = false,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -80,6 +85,8 @@ fun BGainOutlineField(
 
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
+
+    var showMonthPicker by remember { mutableStateOf(false) }
 
 
 
@@ -159,7 +166,6 @@ fun BGainOutlineField(
             label = bGainlabel,
             modifier = modifier,
             readOnly = true,
-            leadingIcon = leadingIcon,
             isError = (submitAttempted || hasInteracted) && errorStatus.isError,
             supportingText = {
                 if ((submitAttempted || hasInteracted) && errorStatus.isError) {
@@ -171,7 +177,7 @@ fun BGainOutlineField(
                     }
                 }
             },
-            trailingIcon = {
+            leadingIcon = {
                 IconButton(onClick = { showDatePicker = !showDatePicker }) {
                     Icon(
                         imageVector = Icons.Default.DateRange,
@@ -180,8 +186,66 @@ fun BGainOutlineField(
                 }
             },
         )
-    }
-    else {
+    } else if (isMonthPicker) {
+        if (showMonthPicker) {
+            BasicAlertDialog(
+                onDismissRequest = { showMonthPicker = false },
+            ){
+                MonthYearPickerContent(
+                    monthYear = Value,
+                    onMonthYearChange = {
+                        onValueChange?.invoke(it)
+                    },
+                    onDismiss = { showMonthPicker = false}
+                )
+            }
+        }
+        OutlinedTextField(
+            value = Value,
+            onValueChange = {
+                hasInteracted = true;
+                if (validator != null) {
+                    validator(it)
+                };
+                if (onValueChange != null) {
+                    onValueChange(it)
+                }
+            },
+            label = bGainlabel,
+            modifier = modifier,
+            keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
+            isError = (submitAttempted || hasInteracted) && errorStatus.isError,
+            supportingText = {
+                if ((submitAttempted || hasInteracted) && errorStatus.isError) {
+                    errorStatus.errorMsg?.let {
+                        Text(
+                            text = it, modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            leadingIcon = {
+                IconButton(onClick = { showMonthPicker = !showMonthPicker }) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Pick month"
+                    )
+                }
+            },
+            trailingIcon = {
+                if (Value != "") {
+                    IconButton(onClick = { onValueChange?.invoke("") }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Cancel,
+                            contentDescription = "Pick month"
+                        )
+                    }
+                }
+            }
+        )
+    } else {
         OutlinedTextField(
             value = Value,
             onValueChange = {
@@ -231,5 +295,151 @@ fun BGainOutlineField(
                 null
             },
         )
+    }
+}
+
+@Composable
+@Preview
+fun BGainOutlineFieldMonthPickerPreview() {
+    BudgetGainTheme {
+        Surface {
+            Column(modifier = Modifier.fillMaxWidth(),) {
+                BGainOutlineField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    isMonthPicker = true,
+                    labelStr = "Select Month",
+                    Value = "",
+                    errorStatus = ErrorStatus(isError = false),
+                    onValueChange = { },
+                )
+            }
+
+        }
+    }
+}
+
+@Composable
+fun MonthYearPickerContent(
+    monthYear: String = "",
+    onMonthYearChange: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+    val currentMonth = today.month.number
+    val currentYear = today.year
+
+    var splitMonthYear: List<Int> = listOf()
+    splitMonthYear = if (monthYear != "") {
+        monthYear.split("-").map { it.toInt() }
+    } else {
+        listOf(today.year, currentMonth)
+    }
+
+    var month by remember { mutableStateOf(splitMonthYear[1]) }
+    var year by remember { mutableStateOf(splitMonthYear[0]) }
+    var selectedYear by remember { mutableStateOf(splitMonthYear[0]) }
+
+    val onYearChange = { ind: Int ->
+        year = ind
+        onMonthYearChange("$year-${month.toString().padStart(2, '0')}")
+    }
+
+    val onMonthClick = { ind: Int ->
+        month = ind + 1
+        selectedYear = year
+        onMonthYearChange("$year-${month.toString().padStart(2, '0')}")
+        onDismiss()
+    }
+
+    val months = listOf(
+        listOf("Jan", "Feb", "Mar"),
+        listOf("Apr", "May", "Jun"),
+        listOf("Jul", "Aug", "Sep"),
+        listOf("Oct", "Nov", "Dec")
+    )
+    Card {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                IconButton(onClick = { onYearChange(year - 1) }){
+                    Icon(
+                        imageVector = Icons.Default.ChevronLeft,
+                        contentDescription = "Select date time"
+                    )
+                }
+                Text(text = year.toString(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                IconButton(onClick = { onYearChange(year + 1) }){
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Select date time"
+                    )
+                }
+            }
+            HorizontalDivider()
+            for ((i, monthRow) in months.withIndex()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    for ((j, m) in monthRow.withIndex()) {
+                        val monthInd = i * 3 + j
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when {
+                                month > 0 && monthInd == month - 1 && selectedYear == year -> Button(onClick = { onMonthClick(monthInd) }) {
+                                    Text(text = m)
+                                }
+                                monthInd == currentMonth - 1 && year == currentYear -> OutlinedButton(onClick = { onMonthClick(monthInd) }) {
+                                    Text(text = m)
+                                }
+                                else -> TextButton(onClick = { onMonthClick(monthInd) }) {
+                                    Text(text = m)
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+@Composable
+@Preview
+fun MonthPickerContentPreview() {
+    BudgetGainTheme {
+        Surface {
+            MonthYearPickerContent(
+                onMonthYearChange = {},
+                onDismiss = {}
+            )
+        }
+    }
+}
+
+@Composable
+@Preview
+fun DarkMonthPickerContentPreview() {
+    BudgetGainTheme(darkTheme = true) {
+        Surface {
+            MonthYearPickerContent(
+                onMonthYearChange = {},
+                onDismiss = {}
+            )
+        }
     }
 }

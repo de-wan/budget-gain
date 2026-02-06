@@ -7,12 +7,10 @@ import kotlin.time.Clock
 @Entity
 data class BudgetEntity(
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
-    val name: String = "",
+    val yearMonth: String = "",
     var isActive: Boolean = false,
     val initialBalance: Long = 0,   // amount in cents
     var budgetedAmount: Long = 0,   // amount in cents
     var spentAmount: Long = 0,   // amount in cents
-    val startDate: Long = 0,
-    val endDate: Long = 0,
     val createdAt: Long = Clock.System.now().epochSeconds,
 )
