@@ -2,6 +2,7 @@ package co.ke.foxlysoft.budgetgain.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -33,9 +35,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -50,9 +54,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
@@ -97,8 +104,10 @@ fun HomeScreen(
         pageState = pageState.value,
         onNavigate = onNavigate,
         currentBudget = currentBudget,
+        onActivateBudget = homeScreenViewModel::activateBudget,
         onDeleteCategory = homeScreenViewModel::deleteCategory,
         onGetBudgetCategories = homeScreenViewModel::getBudgetCategories,
+        onGetAllBudgets = homeScreenViewModel::getAllBudgets,
         onUpsertMpesaSms = homeScreenViewModel::upsertMpesaSms
     )
 
@@ -109,8 +118,10 @@ fun HomeContent(
     pageState: QueryState,
     onNavigate: (String) -> Unit,
     currentBudget: BudgetEntity,
+    onActivateBudget: (Long) -> Unit = {},
     onDeleteCategory: suspend (CategoryEntity) -> Unit = {},
     onGetBudgetCategories: suspend (limit: Int, offset: Int) -> List<CategoryEntity> = { _, _ -> emptyList() },
+    onGetAllBudgets: suspend () -> List<BudgetEntity> = {emptyList()},
     onUpsertMpesaSms: suspend (MpesaSmsEntity) -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -120,6 +131,10 @@ fun HomeContent(
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val selectedTabIndex = remember { derivedStateOf { pagerState.currentPage } }
+
+    var showSelectBudgetDialog by remember { mutableStateOf(false) }
+    var selectableBudgets by remember { mutableStateOf(emptyList<BudgetEntity>()) }
+    var budgetToActivate by remember { mutableStateOf(0L) }
 
     var isPermissionGranted by remember {
         mutableStateOf(false)
@@ -208,7 +223,13 @@ fun HomeContent(
                     ) {
                         Spacer(modifier = Modifier.width(8.dp))
                         ElevatedButton(
-                            onClick = {}
+                            onClick = {
+                                coroutineScope.launch {
+                                    selectableBudgets = onGetAllBudgets()
+                                    budgetToActivate = currentBudget.id
+                                }
+                                showSelectBudgetDialog = true
+                            }
                         ) {
                             Text(
                                 text = currentBudget.yearMonth,
@@ -337,6 +358,65 @@ fun HomeContent(
                                 HorizontalDivider()
                             }
 
+                        }
+                    }
+                }
+
+                if (showSelectBudgetDialog) {
+                    Dialog(
+                        onDismissRequest = {
+                            showSelectBudgetDialog = false
+                        }
+                    ) {
+                        Card {
+                            Column(
+                                modifier = Modifier.padding(24.dp).width(300.dp)
+                            ) {
+                                Text("Select Budget", style = MaterialTheme.typography.headlineLarge)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("This sets the selected budget as current budget")
+                                Spacer(modifier = Modifier.height(16.dp))
+                                for (budget in selectableBudgets) {
+                                    Row (
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp)
+                                            .selectable(
+                                                selected = (budgetToActivate == budget.id),
+                                                onClick = { budgetToActivate = budget.id },
+                                                role = Role.RadioButton
+                                            )
+                                            .padding(horizontal = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ){
+                                        RadioButton(
+                                            selected = budgetToActivate == budget.id,
+                                            onClick = null
+                                        )
+                                        Text(budget.yearMonth,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.padding(start = 16.dp))
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Row (
+                                    horizontalArrangement = Arrangement.End
+                                ){
+                                    TextButton(onClick = {
+                                        showSelectBudgetDialog = false
+                                    }) {
+                                        Text("Cancel")
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    TextButton(onClick = {
+                                        onActivateBudget(budgetToActivate)
+                                        showSelectBudgetDialog = false
+                                    }) {
+                                        Text("Select")
+                                    }
+                                }
+                            }
                         }
                     }
                 }

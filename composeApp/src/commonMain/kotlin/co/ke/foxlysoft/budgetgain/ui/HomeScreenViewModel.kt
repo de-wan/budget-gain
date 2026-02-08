@@ -13,6 +13,7 @@ import co.ke.foxlysoft.budgetgain.utils.QueryState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class HomeScreenViewModel(
@@ -56,6 +57,20 @@ class HomeScreenViewModel(
         )
     }
 
+    suspend fun getAllBudgets(): List<BudgetEntity> {
+        return budgetRepository.getAllBudgets().first()
+    }
+
+    fun activateBudget(budgetId: Long) {
+        if (budgetId == currentBudget.value.id) {
+            return
+        }
+
+        _pageState.value = QueryState.LOADING
+        viewModelScope.launch {
+            budgetRepository.activateBudget(budgetId)
+        }
+    }
 
     suspend fun getBudgetCategories(limit : Int, offset : Int): List<CategoryEntity> {
         val budgetId = currentBudget.value.id
