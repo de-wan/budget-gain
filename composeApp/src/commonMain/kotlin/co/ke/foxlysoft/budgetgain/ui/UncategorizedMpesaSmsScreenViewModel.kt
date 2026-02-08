@@ -34,6 +34,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 class UncategorizedMpesaSmsScreenViewModel(
     private val mpesaSmsRepository: MpesaSmsRepository,
@@ -42,28 +46,10 @@ class UncategorizedMpesaSmsScreenViewModel(
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository
 ): ViewModel() {
-    companion object {
-        const val PAGE_SIZE = 5
-        const val INITIAL_PAGE = 0
-    }
-
     private val _currentBudgetQueryState =
         MutableStateFlow<QueryState>(QueryState.LOADING)
     val currentBudgetQueryState: StateFlow<QueryState>
         get() = _currentBudgetQueryState.asStateFlow()
-
-    private val _smsList =
-        MutableStateFlow<List<MpesaSmsEntity>>(emptyList())
-    val smsList: StateFlow<List<MpesaSmsEntity>>
-        get() = _smsList.asStateFlow()
-
-    private val _pagingState =
-        MutableStateFlow<PaginationState>(PaginationState.LOADING)
-    val pagingState: StateFlow<PaginationState>
-        get() = _pagingState.asStateFlow()
-
-    var page = INITIAL_PAGE
-    var canPaginate by mutableStateOf(false)
 
     private val _currentBudget =
         MutableStateFlow<BudgetEntity>(BudgetEntity())
@@ -72,6 +58,13 @@ class UncategorizedMpesaSmsScreenViewModel(
 
     private val _selectableCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
     val selectableCategories: StateFlow<List<CategoryEntity>> = _selectableCategories
+
+    private val _search = MutableStateFlow("")
+    val search: StateFlow<String> = _search.asStateFlow()
+
+    fun onSearchChange(search: String) {
+        _search.value = search
+    }
 
     init {
         budgetRepository.getCurrentBudget(
@@ -94,47 +87,9 @@ class UncategorizedMpesaSmsScreenViewModel(
         )
     }
 
-    fun clearPaging() {
-        page = 0
-        _pagingState.update { PaginationState.LOADING }
-        canPaginate = false
-    }
-
-    fun getUncategorizedMpesaSms() {
-        if (page == INITIAL_PAGE || (canPaginate) && _pagingState.value == PaginationState.REQUEST_INACTIVE) {
-            _pagingState.update { if (page == INITIAL_PAGE) PaginationState.LOADING else PaginationState.PAGINATING }
-        }
-
-        viewModelScope.launch {
-            try {
-                val result = mpesaSmsRepository.getPagingUncategorizedMpesaSms(
-                    PAGE_SIZE, page * PAGE_SIZE
-                )
-                canPaginate = result.size == PAGE_SIZE
-
-                if (page == INITIAL_PAGE) {
-                    if (result.isEmpty()) {
-                        _pagingState.update { PaginationState.EMPTY }
-                        return@launch
-                    }
-                    _smsList.value = result
-                } else {
-                    _smsList.value += result
-                }
-
-                _pagingState.update { PaginationState.REQUEST_INACTIVE }
-
-                if (canPaginate) {
-                    page++
-                }
-
-                if (!canPaginate) {
-                    _pagingState.update { PaginationState.PAGINATION_EXHAUST }
-                }
-            } catch (e: Exception) {
-                _pagingState.update { if (page == INITIAL_PAGE) PaginationState.ERROR else PaginationState.PAGINATION_EXHAUST }
-            }
-        }
+    suspend fun getUncategorizedMpesaSms(limit: Int, offset: Int): List<MpesaSmsEntity> {
+        val search = _search.value
+        return mpesaSmsRepository.getPagingUncategorizedMpesaSms(limit, offset, search)
     }
 
     private var _searchJob: Job? = null
@@ -161,7 +116,11 @@ class UncategorizedMpesaSmsScreenViewModel(
         val budget = budgetRepository.getCurrentBudget()
 
         // check if sms timestamp is within budget time range
-        if (smsToCategorize.dateTime < budget.startDate || smsToCategorize.dateTime > budget.endDate) {
+        // Convert millis to Instant, then to LocalDateTime in your timezone
+        val instant = Instant.fromEpochMilliseconds(smsToCategorize.dateTime)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val yearMonthStr = "${dateTime.year}-${dateTime.month.number.toString().padStart(2, '0')}"
+        if (yearMonthStr != budget.yearMonth) {
             return
         }
 
@@ -227,39 +186,67 @@ class UncategorizedMpesaSmsScreenViewModel(
     }
 
     @Transaction
-    fun categorizeSms(categoryName: String, smsToCategorize: MpesaSmsEntity, shouldCategorizeSimilarByMerchant: Boolean, onComplete: () -> Unit, onError: (Throwable) -> Unit) {
-        viewModelScope.launch {
-            try {
-                withContext(Dispatchers.IO) {
-                    categorizeSingleSms(categoryName, smsToCategorize)
+    suspend fun categorizeSms(categoryName: String, smsToCategorize: MpesaSmsEntity, shouldCategorizeSimilarByMerchant: Boolean) {
+        try {
+            categorizeSingleSms(categoryName, smsToCategorize)
 
-                    if (shouldCategorizeSimilarByMerchant) {
-                        // retrieve all sms with similar identifier
-                        val primaryIdentifier = smsToCategorize.subjectPrimaryIdentifier
-                        val primaryIdentifierType = smsToCategorize.subjectPrimaryIdentifierType
-                        val secondaryIdentifier = smsToCategorize.subjectSecondaryIdentifier
-                        val secondaryIdentifierType = smsToCategorize.subjectSecondaryIdentifierType
+            if (shouldCategorizeSimilarByMerchant) {
+                // retrieve all sms with similar identifier
+                val primaryIdentifier = smsToCategorize.subjectPrimaryIdentifier
+                val primaryIdentifierType = smsToCategorize.subjectPrimaryIdentifierType
+                val secondaryIdentifier = smsToCategorize.subjectSecondaryIdentifier
+                val secondaryIdentifierType = smsToCategorize.subjectSecondaryIdentifierType
 
-                        val smsList = mpesaSmsRepository.getMpesaSmsByIdentifier(
-                            primaryIdentifier,
-                            primaryIdentifierType,
-                            secondaryIdentifier,
-                            secondaryIdentifierType
-                        )
-                        smsList.forEach {
-                            categorizeSingleSms(categoryName, it)
-                        }
-                    }
-
-                    onComplete()
+                val smsList = mpesaSmsRepository.getMpesaSmsByIdentifier(
+                    primaryIdentifier,
+                    primaryIdentifierType,
+                    secondaryIdentifier,
+                    secondaryIdentifierType
+                )
+                smsList.forEach {
+                    categorizeSingleSms(categoryName, it)
                 }
-            } catch (e: Exception) {
-                Logger.e("Error categorizing mpesa sms", e)
-                onError(e)
-                return@launch
             }
+        } catch (e: Exception) {
+            Logger.e("Error categorizing mpesa sms", e)
+            throw e
         }
+    }
 
+    @Transaction
+    suspend fun categorizeBulkSms(categoryName: String, selectedSmsIds: Set<Any>, shouldCategorizeSimilarByMerchant: Boolean) {
+        try {
+            // Convert IDs to Long for database query
+            val smsList = selectedSmsIds.mapNotNull { it as? Long }
 
+            // Get all SMS entities from the list
+            val allSms = mpesaSmsRepository.getMpesaSmsById(smsList)
+
+            // Categorize each SMS
+            allSms.forEach { sms ->
+                categorizeSingleSms(categoryName, sms)
+
+                if (shouldCategorizeSimilarByMerchant) {
+                    // For each SMS, categorize similar merchants
+                    val primaryIdentifier = sms.subjectPrimaryIdentifier
+                    val primaryIdentifierType = sms.subjectPrimaryIdentifierType
+                    val secondaryIdentifier = sms.subjectSecondaryIdentifier
+                    val secondaryIdentifierType = sms.subjectSecondaryIdentifierType
+
+                    val similarSmsList = mpesaSmsRepository.getMpesaSmsByIdentifier(
+                        primaryIdentifier,
+                        primaryIdentifierType,
+                        secondaryIdentifier,
+                        secondaryIdentifierType
+                    )
+                    similarSmsList.forEach { similarSms ->
+                        categorizeSingleSms(categoryName, similarSms)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Logger.e("Error bulk categorizing mpesa sms", e)
+            throw e
+        }
     }
 }
