@@ -19,9 +19,13 @@ class MpesaSmsRepository(db: AppDatabase) {
         mpesaSmsDao.update(mpesaSmsEntity)
     }
 
-    suspend fun getPagingUncategorizedMpesaSms(limit: Int, offset: Int) = mpesaSmsDao.getPagingUncategorizedMpesaSms(limit, offset)
+    suspend fun getPagingUncategorizedMpesaSms(limit: Int, offset: Int, search: String? = null) = mpesaSmsDao.getPagingUncategorizedMpesaSms(limit, offset, search)
 
     suspend fun getMpesaSmsByIdentifier(primaryIdentifier: String, primaryIdentifierType: String, secondaryIdentifier: String?, secondaryIdentifierType: String?): List<MpesaSmsEntity> {
         return mpesaSmsDao.getMpesaSmsByIdentifier(primaryIdentifier, primaryIdentifierType, secondaryIdentifier ?: "", secondaryIdentifierType ?: "")
+    }
+
+    suspend fun getMpesaSmsById(ids: List<Long>): List<MpesaSmsEntity> {
+        return mpesaSmsDao.getMpesaSmsById(ids)
     }
 }
