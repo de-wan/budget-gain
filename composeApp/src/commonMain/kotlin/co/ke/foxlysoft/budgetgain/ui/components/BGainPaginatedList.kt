@@ -32,8 +32,7 @@ fun <T> BGPaginatedList(
     onGetItem: @Composable (T) -> Unit,
     onGetSpacer: (@Composable () -> Unit)? = null,
     onGetItems: suspend (limit: Int, offset: Int) -> List<T>,
-    onRefreshReady: (refresh: () -> Unit) -> Unit = {},
-    onRefreshAllPagesReady: (refreshAllPages: () -> Unit) -> Unit = {},
+    controller: BGainPaginationController = remember { BGainPaginationController() },
     ) {
     val coroutineScope = rememberCoroutineScope()
 
@@ -136,8 +135,8 @@ fun <T> BGPaginatedList(
     }
 
     LaunchedEffect(Unit) {
-        onRefreshReady{ refresh() }
-        onRefreshAllPagesReady{ refreshAllPages() }
+        controller.setRefreshCallback{ refresh() }
+        controller.setRefreshAllPagesCallback{ refreshAllPages() }
         refresh()
     }
 
