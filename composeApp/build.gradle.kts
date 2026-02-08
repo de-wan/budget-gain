@@ -40,12 +40,10 @@ kotlin {
             implementation(libs.koin.androidx.compose)
         }
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
+            implementation(libs.components.resources)
+            implementation(libs.material3)
+            implementation(libs.ui.tooling.preview)
+
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.androidx.navigation.compose)
@@ -62,6 +60,7 @@ kotlin {
             implementation(libs.kermit)
 
             implementation(libs.material.icons.extended)
+
         }
         iosMain.dependencies {
         }
