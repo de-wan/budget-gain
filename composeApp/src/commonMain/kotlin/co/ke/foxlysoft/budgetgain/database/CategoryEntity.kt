@@ -11,5 +11,6 @@ data class CategoryEntity(
     var name: String,
     var amount: Long,   // amount in cents
     var spentAmount: Long,   // amount in cents
+    var trackMode: String? = null,
     val createdAt: Long = Clock.System.now().epochSeconds,
 )
