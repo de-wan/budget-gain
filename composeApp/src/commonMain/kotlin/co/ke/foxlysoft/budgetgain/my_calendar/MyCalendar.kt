@@ -4,14 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.yearMonth
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun MonthCalendar(
@@ -24,7 +26,9 @@ fun MonthCalendar(
     val daysInMonth = firstOfMonth.yearMonth.numberOfDays
     val startDayOfWeek = firstOfMonth.dayOfWeek.isoDayNumber % 7
 
-    Column {
+    Column(
+        modifier = Modifier.padding(top = 16.dp)
+    ) {
         WeekHeader()
         // 42 cells (6 weeks)
         val cells = (0 until 42).map { i ->

@@ -31,12 +31,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
 import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
 import co.ke.foxlysoft.budgetgain.utils.centsToString
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 

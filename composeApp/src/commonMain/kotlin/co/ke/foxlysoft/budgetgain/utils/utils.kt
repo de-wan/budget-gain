@@ -2,7 +2,7 @@ package co.ke.foxlysoft.budgetgain.utils
 
 import androidx.compose.ui.text.input.TextFieldValue
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant

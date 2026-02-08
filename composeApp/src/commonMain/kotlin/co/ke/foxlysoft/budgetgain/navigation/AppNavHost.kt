@@ -158,5 +158,15 @@ fun AppNavHost(
                 merchantId = id
             )
         }
+        animatedComposable(
+            Screens.DailyUsage.route,
+        ) {
+            UncategorizedMpesaSmsScreen(
+                onNavigate = {route ->
+                    navHostController.navigate(route)
+                },
+                onOpenSnackbar = onOpenSnackbar
+            )
+        }
     }
 }

@@ -21,6 +21,7 @@ import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.EditCategoryScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreenViewModel
+import co.ke.foxlysoft.budgetgain.ui.DailyUsageScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.MerchantTransactionsScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.SpendScreenViewModel
 import co.ke.foxlysoft.budgetgain.ui.MerchantsScreenViewModel
@@ -112,4 +113,5 @@ val viewModelModule =
         viewModelOf(::UncategorizedMpesaSmsScreenViewModel)
         viewModelOf(::MerchantsScreenViewModel)
         viewModelOf(::EditCategoryScreenViewModel)
+        viewModelOf(::DailyUsageScreenViewModel)
     }
