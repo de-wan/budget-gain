@@ -19,13 +19,17 @@ class MpesaSmsRepository(db: AppDatabase) {
         mpesaSmsDao.update(mpesaSmsEntity)
     }
 
-    suspend fun getPagingUncategorizedMpesaSms(limit: Int, offset: Int, search: String? = null) = mpesaSmsDao.getPagingUncategorizedMpesaSms(limit, offset, search)
+    suspend fun getPagingUncategorizedMpesaSms(limit: Int, offset: Int, search: String? = null, from: Long, to: Long) = mpesaSmsDao.getPagingUncategorizedMpesaSms(limit, offset, search, from, to)
 
-    suspend fun getMpesaSmsByIdentifier(primaryIdentifier: String, primaryIdentifierType: String, secondaryIdentifier: String?, secondaryIdentifierType: String?): List<MpesaSmsEntity> {
-        return mpesaSmsDao.getMpesaSmsByIdentifier(primaryIdentifier, primaryIdentifierType, secondaryIdentifier ?: "", secondaryIdentifierType ?: "")
+    suspend fun getMpesaSmsByIdentifier(primaryIdentifier: String, primaryIdentifierType: String, secondaryIdentifier: String?, secondaryIdentifierType: String?, from: Long, to: Long): List<MpesaSmsEntity> {
+        return mpesaSmsDao.getMpesaSmsByIdentifier(primaryIdentifier, primaryIdentifierType, secondaryIdentifier ?: "", secondaryIdentifierType ?: "", from, to)
     }
 
     suspend fun getMpesaSmsById(ids: List<Long>): List<MpesaSmsEntity> {
         return mpesaSmsDao.getMpesaSmsById(ids)
+    }
+
+    suspend fun ignoreMpesaSms(id: Long) {
+        mpesaSmsDao.ignoreMpesaSms(id)
     }
 }

@@ -14,6 +14,9 @@ interface TransactionDao {
     @Delete
     suspend fun delete(transactionEntity: TransactionEntity)
 
+    @Query("SELECT * FROM TransactionEntity WHERE budgetId = :budgetId")
+    fun getBudgetTransactions(budgetId: Long): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM TransactionEntity WHERE categoryId = :categoryId")
     fun getCategoryTransactions(categoryId: Long): Flow<List<TransactionEntity>>
 

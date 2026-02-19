@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
+import kotlin.math.min
 
 @OptIn(KoinExperimentalAPI::class)
 @Composable
@@ -106,7 +107,8 @@ fun EditCategoryScreen (
                 isValid = false
             }
 
-            if (doubleCategoryAmount * 100 < (categoryToEdit?.spentAmount?.toDouble() ?: 0.0)) {
+            val minAmount = min(categoryToEdit?.spentAmount!!, categoryToEdit?.amount!!)
+            if (doubleCategoryAmount * 100 < minAmount.toDouble()) {
                 categoryAmountErrorStatus =
                     ErrorStatus(isError = true, errorMsg = "Category Amount cannot be less than min")
                 isValid = false
@@ -186,7 +188,8 @@ fun EditCategoryScreen (
                         return@BGainOutlineField
                     }
 
-                    if (doubleCategoryAmount * 100 < (categoryToEdit?.spentAmount?.toDouble() ?: 0.0)) {
+                    val minAmount = min(categoryToEdit?.spentAmount!!, categoryToEdit?.amount!!)
+                    if (doubleCategoryAmount * 100 < minAmount.toDouble()) {
                         categoryAmountErrorStatus =
                             ErrorStatus(isError = true, errorMsg = "Category Amount cannot be less than min")
                         return@BGainOutlineField
@@ -212,7 +215,8 @@ fun EditCategoryScreen (
             }
         )
         Row {
-            Text(text="Min: ${centsToString(categoryToEdit?.spentAmount ?: 0)}")
+            val minAmount = min(categoryToEdit?.spentAmount ?: 0, categoryToEdit?.amount ?: 0)
+            Text(text="Min: ${centsToString(minAmount)}")
             Spacer(modifier = Modifier.weight(1f))
             Text(text="Max: ${centsToString((currentBudget.initialBalance - currentBudget.budgetedAmount) + (categoryToEdit?.amount ?: 0))}")
         }

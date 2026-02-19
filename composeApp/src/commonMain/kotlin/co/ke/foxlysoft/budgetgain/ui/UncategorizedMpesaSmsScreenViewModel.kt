@@ -34,8 +34,13 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
@@ -55,6 +60,9 @@ class UncategorizedMpesaSmsScreenViewModel(
         MutableStateFlow<BudgetEntity>(BudgetEntity())
     val currentBudget: StateFlow<BudgetEntity>
         get() = _currentBudget.asStateFlow()
+
+    private val budgetFromDate = MutableStateFlow<Long?>(null)
+    private val budgetToDate = MutableStateFlow<Long?>(null)
 
     private val _selectableCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
     val selectableCategories: StateFlow<List<CategoryEntity>> = _selectableCategories
@@ -78,6 +86,7 @@ class UncategorizedMpesaSmsScreenViewModel(
                             _currentBudgetQueryState.value = QueryState.NO_RESULTS
                         } else {
                             _currentBudget.value = currentBudget
+                            getBudgetDates(currentBudget)
                             _currentBudgetQueryState.value = QueryState.COMPLETE
                         }
                     }
@@ -87,9 +96,29 @@ class UncategorizedMpesaSmsScreenViewModel(
         )
     }
 
+    private suspend fun getBudgetDates(budgetEntity: BudgetEntity? = null): Pair<Long, Long> {
+        if (budgetFromDate.value != null && budgetToDate.value != null) {
+            return budgetFromDate.value!! to budgetToDate.value!!
+        }
+
+        val budget = budgetEntity ?: budgetRepository.getCurrentBudget()
+        val splitYearMonth = budget.yearMonth.split("-").map{ it.toInt() }
+
+        val yearMonth = YearMonth(splitYearMonth[0], Month(splitYearMonth[1]))
+        budgetFromDate.value = yearMonth.firstDay.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+        val nextMonth = yearMonth.plus(1, DateTimeUnit.MONTH)
+        budgetToDate.value = nextMonth.firstDay.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds() - 1
+
+        return budgetFromDate.value!! to budgetToDate.value!!
+    }
+
     suspend fun getUncategorizedMpesaSms(limit: Int, offset: Int): List<MpesaSmsEntity> {
+        val budgetDates = getBudgetDates()
+        val from = budgetDates.first
+        val to = budgetDates.second
+
         val search = _search.value
-        return mpesaSmsRepository.getPagingUncategorizedMpesaSms(limit, offset, search)
+        return mpesaSmsRepository.getPagingUncategorizedMpesaSms(limit, offset, search, from, to)
     }
 
     private var _searchJob: Job? = null
@@ -185,12 +214,31 @@ class UncategorizedMpesaSmsScreenViewModel(
         mpesaSmsRepository.updateMpesaSms(smsToCategorize)
     }
 
+    suspend fun ignoreSingleSms(smsToIgnore: MpesaSmsEntity) {
+        val budget = budgetRepository.getCurrentBudget()
+
+        // check if sms timestamp is within budget time range
+        // Convert millis to Instant, then to LocalDateTime in your timezone
+        val instant = Instant.fromEpochMilliseconds(smsToIgnore.dateTime)
+        val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val yearMonthStr = "${dateTime.year}-${dateTime.month.number.toString().padStart(2, '0')}"
+        if (yearMonthStr != budget.yearMonth) {
+            return
+        }
+
+        mpesaSmsRepository.ignoreMpesaSms(smsToIgnore.id)
+    }
+
     @Transaction
     suspend fun categorizeSms(categoryName: String, smsToCategorize: MpesaSmsEntity, shouldCategorizeSimilarByMerchant: Boolean) {
         try {
             categorizeSingleSms(categoryName, smsToCategorize)
 
             if (shouldCategorizeSimilarByMerchant) {
+                val budgetDates = getBudgetDates()
+                val from = budgetDates.first
+                val to = budgetDates.second
+
                 // retrieve all sms with similar identifier
                 val primaryIdentifier = smsToCategorize.subjectPrimaryIdentifier
                 val primaryIdentifierType = smsToCategorize.subjectPrimaryIdentifierType
@@ -201,7 +249,9 @@ class UncategorizedMpesaSmsScreenViewModel(
                     primaryIdentifier,
                     primaryIdentifierType,
                     secondaryIdentifier,
-                    secondaryIdentifierType
+                    secondaryIdentifierType,
+                    from,
+                    to
                 )
                 smsList.forEach {
                     categorizeSingleSms(categoryName, it)
@@ -227,6 +277,10 @@ class UncategorizedMpesaSmsScreenViewModel(
                 categorizeSingleSms(categoryName, sms)
 
                 if (shouldCategorizeSimilarByMerchant) {
+                    val budgetDates = getBudgetDates()
+                    val from = budgetDates.first
+                    val to = budgetDates.second
+
                     // For each SMS, categorize similar merchants
                     val primaryIdentifier = sms.subjectPrimaryIdentifier
                     val primaryIdentifierType = sms.subjectPrimaryIdentifierType
@@ -237,7 +291,9 @@ class UncategorizedMpesaSmsScreenViewModel(
                         primaryIdentifier,
                         primaryIdentifierType,
                         secondaryIdentifier,
-                        secondaryIdentifierType
+                        secondaryIdentifierType,
+                        from,
+                        to
                     )
                     similarSmsList.forEach { similarSms ->
                         categorizeSingleSms(categoryName, similarSms)

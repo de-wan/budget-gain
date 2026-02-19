@@ -123,8 +123,8 @@ fun CategoryDetailsContent(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    val tabs = listOf("Transactions", "Merchants", "Charts", "Track")
-    val tabIcons = listOf(Icons.Default.Receipt, Icons.Outlined.Shop, Icons.Default.BarChart, Icons.Outlined.CalendarMonth)
+    val tabs = listOf("Transactions", "Merchants", "Charts")
+    val tabIcons = listOf(Icons.Default.Receipt, Icons.Outlined.Shop, Icons.Default.BarChart)
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val selectedTabIndex = remember { derivedStateOf { pagerState.currentPage } }
@@ -140,7 +140,7 @@ fun CategoryDetailsContent(
         Text(text = "Remaining: Ksh${centsToString(category.amount - category.spentAmount)}")
         Spacer(modifier = Modifier.height(8.dp))
 
-        PrimaryScrollableTabRow(
+        PrimaryTabRow(
             selectedTabIndex = selectedTabIndex.value,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -213,7 +213,7 @@ fun CategoryDetailsContent(
             if (selectedTabIndex.value == 2) {
                 Column {
                     MonthSpendingChart(
-                        category = category,
+                        title = "Category - ${category.name}",
                         dailyData = dailyData
                     )
                 }
@@ -329,18 +329,23 @@ fun MerchantSummaryItem(
             modifier = Modifier.fillMaxWidth().padding(8.dp)
         ) {
             Text(text = merchantSummary.merchantName, style = MaterialTheme.typography.titleMedium)
-            Text(text = "Spent: ${centsToString(merchantSummary.spentAmount)}")
+            Row {
+                Text(text = "Spent: ${centsToString(merchantSummary.spentAmount)}")
+                Spacer(modifier = Modifier.weight(1f))
+                Text("${merchantSummary.transactionCount} transactions")
+            }
+
         }
     }
     Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable
-fun MonthSpendingChart(category: CategoryEntity, dailyData: List<Pair<Int, Long>>) {
+fun MonthSpendingChart(title: String? = "", dailyData: List<Pair<Int, Long>>) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Daily Spending - ${category.name}",
+                text = title ?: "Month Spending Chart",
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -391,8 +396,8 @@ fun CategoryDetailsContentPreview() {
         )
     )
     val sampleMerchantSummaries = listOf(
-        MerchantSummary(merchantName = "Sample Merchant", spentAmount = 12_500),
-        MerchantSummary(merchantName = "Sample Merchant 2", spentAmount = 50_000)
+        MerchantSummary(merchantName = "Sample Merchant", spentAmount = 12_500, transactionCount = 2),
+        MerchantSummary(merchantName = "Sample Merchant 2", spentAmount = 50_000, transactionCount = 1)
     )
 
     BudgetGainTheme {
@@ -479,7 +484,7 @@ fun MonthSpendingChartPreview() {
     BudgetGainTheme {
         Surface {
             MonthSpendingChart(
-                category = sampleCategory,
+                title = "Category - ${sampleCategory.name}",
                 dailyData = sampleDailyData
             )
         }
@@ -510,7 +515,7 @@ fun DarkMonthSpendingChartPreview() {
     BudgetGainTheme(darkTheme = true) {
         Surface {
             MonthSpendingChart(
-                category = sampleCategory,
+                title = "Category - ${sampleCategory.name}",
                 dailyData = sampleDailyData
             )
         }

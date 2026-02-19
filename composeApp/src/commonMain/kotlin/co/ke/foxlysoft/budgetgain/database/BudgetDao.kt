@@ -47,4 +47,7 @@ interface BudgetDao {
 
     @Query("SELECT * FROM BudgetEntity WHERE yearMonth = :yearMonth")
     suspend fun getBudgetByYearMonth(yearMonth: String): BudgetEntity?
+
+    @Query("UPDATE BudgetEntity SET initialBalance = initialBalance + :amount WHERE id = :budgetId")
+    suspend fun replenishBudget(budgetId: Long, amount: Long)
 }

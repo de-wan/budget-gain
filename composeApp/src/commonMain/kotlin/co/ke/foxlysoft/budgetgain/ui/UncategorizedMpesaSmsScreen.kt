@@ -54,8 +54,10 @@ import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -118,6 +120,13 @@ fun UncategorizedMpesaSmsScreen(
             smsToCategorize.value = it
             showBottomSheet = true
         },
+        onIgnoreSms = {sms ->
+            coroutineScope.launch {
+                uncategorizedMpesaSmsScreenViewModel.ignoreSingleSms(sms)
+                paginationController.refreshAllPages()
+            }
+            onOpenSnackbar("SMS successfully ignored")
+        },
         paginationController = paginationController,
         search = search,
         onSearchChange = uncategorizedMpesaSmsScreenViewModel::onSearchChange,
@@ -140,7 +149,8 @@ fun UncategorizedMpesaSmsScreen(
         onClearSelection = {
             isMultiSelectMode = false
             selectedSmsIds.value = emptySet()
-        }
+        },
+        onOpenSnackbar = onOpenSnackbar
     )
 
     if (showBottomSheet) {
@@ -292,6 +302,7 @@ fun UncategorizedMpesaSmsScreen(
 fun UncategorizedMpesaSmsContent(
     onGetItems: suspend (Int, Int) -> List<MpesaSmsEntity>,
     paginationController: BGainPaginationController = remember { BGainPaginationController() },
+    onIgnoreSms: (MpesaSmsEntity) -> Unit = {},
     onCategorize: (MpesaSmsEntity) -> Unit = {},
     onEnterMultiSelectMode: (Long) -> Unit,
     onToggleSelection: (Long) -> Unit,
@@ -301,6 +312,7 @@ fun UncategorizedMpesaSmsContent(
     isMultiSelectMode: Boolean = false,
     onClearSelection: () -> Unit = {},
     onCategorizeSelected: () -> Unit = {},
+    onOpenSnackbar: (String) -> Unit = {}
 ) {
     Column {
         Text(text = "Uncategorized MPESA sms", style = MaterialTheme.typography.headlineMedium)
@@ -375,6 +387,7 @@ fun UncategorizedMpesaSmsContent(
                     isMultiSelectMode = isMultiSelectMode,
                     onLongPress = { onEnterMultiSelectMode(sms.id) },
                     onToggleSelection = { onToggleSelection(sms.id) },
+                    onIgnoreSms = onIgnoreSms,
                     onCategorize = onCategorize
                 )
             },
@@ -393,6 +406,7 @@ fun SmsItem(
     isMultiSelectMode: Boolean = false,
     onLongPress: () -> Unit = {},
     onToggleSelection: () -> Unit = {},
+    onIgnoreSms: (MpesaSmsEntity) -> Unit = {},
     onCategorize: (MpesaSmsEntity) -> Unit = {}
 ) {
     // State to track the expanded state of the menu
@@ -481,6 +495,13 @@ fun SmsItem(
                         },
                             text = {
                                 Text("Categorize")
+                            })
+                        DropdownMenuItem(onClick = {
+                            onIgnoreSms(sms)
+                            menuExpanded = false
+                        },
+                            text = {
+                                Text("Ignore")
                             })
                     }
                 }

@@ -63,4 +63,8 @@ class BudgetRepository(
     suspend fun getBudgetByYearMonth(name: String): BudgetEntity? {
         return budgetDao.getBudgetByYearMonth(name)
     }
+
+    suspend fun replenishBudget(budgetId: Long, amount: Long) {
+        return budgetDao.replenishBudget(budgetId, amount)
+    }
 }
