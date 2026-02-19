@@ -38,6 +38,7 @@ kotlin {
             // Koin
             implementation(libs.koin.android)
             implementation(libs.koin.androidx.compose)
+            implementation(libs.play.services.ads)
         }
         commonMain.dependencies {
             implementation(libs.components.resources)

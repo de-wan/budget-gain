@@ -65,6 +65,7 @@ import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
+import co.ke.foxlysoft.budgetgain.shared.AdMobBanner
 import co.ke.foxlysoft.budgetgain.shared.PermissionLaucher
 import co.ke.foxlysoft.budgetgain.shared.SmsReader
 import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
@@ -72,6 +73,8 @@ import co.ke.foxlysoft.budgetgain.ui.Theme.Green700
 import co.ke.foxlysoft.budgetgain.ui.Theme.Orange500
 import co.ke.foxlysoft.budgetgain.ui.Theme.Purple400
 import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
+import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
+import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.QueryState
 import co.ke.foxlysoft.budgetgain.utils.centsToString
@@ -105,10 +108,12 @@ fun HomeScreen(
         onNavigate = onNavigate,
         currentBudget = currentBudget,
         onActivateBudget = homeScreenViewModel::activateBudget,
+        onReplenishBudget = homeScreenViewModel::replenishBudget,
         onDeleteCategory = homeScreenViewModel::deleteCategory,
         onGetBudgetCategories = homeScreenViewModel::getBudgetCategories,
         onGetAllBudgets = homeScreenViewModel::getAllBudgets,
-        onUpsertMpesaSms = homeScreenViewModel::upsertMpesaSms
+        onUpsertMpesaSms = homeScreenViewModel::upsertMpesaSms,
+        onGetCurrentMonthDailySpendByCategory = homeScreenViewModel::getCurrentMonthDailySpend
     )
 
 }
@@ -119,22 +124,29 @@ fun HomeContent(
     onNavigate: (String) -> Unit,
     currentBudget: BudgetEntity,
     onActivateBudget: (Long) -> Unit = {},
+    onReplenishBudget: suspend (String) -> Unit = {},
     onDeleteCategory: suspend (CategoryEntity) -> Unit = {},
     onGetBudgetCategories: suspend (limit: Int, offset: Int) -> List<CategoryEntity> = { _, _ -> emptyList() },
     onGetAllBudgets: suspend () -> List<BudgetEntity> = {emptyList()},
-    onUpsertMpesaSms: suspend (MpesaSmsEntity) -> Unit = {}
+    onUpsertMpesaSms: suspend (MpesaSmsEntity) -> Unit = {},
+    onGetCurrentMonthDailySpendByCategory: suspend () -> List<Pair<Int, Long>> = { emptyList() }
 ) {
     val coroutineScope = rememberCoroutineScope()
 
     val tabs = listOf("Categories", "Charts", "Info")
     val tabIcons = listOf(Icons.Default.Category, Icons.Default.BarChart, Icons.Outlined.Info)
-    val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val selectedTabIndex = remember { derivedStateOf { pagerState.currentPage } }
 
     var showSelectBudgetDialog by remember { mutableStateOf(false) }
     var selectableBudgets by remember { mutableStateOf(emptyList<BudgetEntity>()) }
     var budgetToActivate by remember { mutableStateOf(0L) }
+
+    var showReplenishBudget by remember { mutableStateOf(false) }
+    var replenishAmount by remember { mutableStateOf("") }
+    var replenishAmountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
+
+    var dailyData by remember { mutableStateOf(emptyList<Pair<Int, Long>>()) }
 
     var isPermissionGranted by remember {
         mutableStateOf(false)
@@ -179,6 +191,8 @@ fun HomeContent(
                     println("fetching sms")
                     coroutineScope.launch {
                         withContext(Dispatchers.Default) {
+                            dailyData = onGetCurrentMonthDailySpendByCategory()
+
                             val splitYearMonth = currentBudget.yearMonth.split("-").map{ it.toInt() }
                             val yearMonth = YearMonth(splitYearMonth[0], Month(splitYearMonth[1]))
 
@@ -208,6 +222,7 @@ fun HomeContent(
                                     subjectSecondaryIdentifier = sms.subjectSecondaryIdentifier,
                                     cost = sms.cost,
                                     balance = sms.balance,
+                                    isIgnored = false,
                                 )
 
                                 onUpsertMpesaSms(mpesaSmsEntity)
@@ -235,7 +250,7 @@ fun HomeContent(
                                 text = currentBudget.yearMonth,
                                 fontSize = 18.sp,
                             )
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Add")
+                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         VerticalDivider(
@@ -248,7 +263,10 @@ fun HomeContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(
-                            onClick = {}
+                            onClick = {
+                                replenishAmount = ""
+                                showReplenishBudget = true
+                            }
                         ) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
                         }
@@ -262,7 +280,7 @@ fun HomeContent(
                             Tab(
                                 selected = selectedTabIndex.value == idx,
                                 onClick = {
-                                    scope.launch {
+                                    coroutineScope.launch {
                                         pagerState.animateScrollToPage(idx)
                                     }
                                 },
@@ -289,25 +307,34 @@ fun HomeContent(
                                 Card(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier.fillMaxWidth().padding(8.dp)
                                     ){
-                                        Column(
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text(centsToString(currentBudget.initialBalance - currentBudget.budgetedAmount),
-                                                style = MaterialTheme.typography.titleMedium)
-                                            Text("Ready for categorization")
-                                        }
-                                        Button(onClick = {
-                                            onNavigate(
-                                                Screens.AddCategoryScreen.createRoute(
-                                                    currentBudget.id
+                                        Text(centsToString(currentBudget.initialBalance - currentBudget.budgetedAmount),
+                                            style = MaterialTheme.typography.titleMedium)
+                                        Text("Ready for categorization")
+                                        Row {
+                                            Button(onClick = {
+                                                onNavigate(
+                                                    Screens.AddCategoryScreen.createRoute(
+                                                        currentBudget.id
+                                                    )
                                                 )
-                                            )
-                                        }) {
-                                            Text("Add Category")
+                                            }) {
+                                                Text("Replenish")
+                                            }
+                                            Spacer(modifier = Modifier.weight(1f))
+                                            Button(onClick = {
+                                                onNavigate(
+                                                    Screens.AddCategoryScreen.createRoute(
+                                                        currentBudget.id
+                                                    )
+                                                )
+                                            }) {
+                                                Text("Add Category")
+                                            }
                                         }
+
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -335,7 +362,13 @@ fun HomeContent(
                             }
                         }
                         else if (selectedTabIndex.value == 1) {
-                            Text(text = "Charts")
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Column {
+                                MonthSpendingChart(
+                                    title = "Budget Spending",
+                                    dailyData = dailyData
+                                )
+                            }
                         }
                         else {
                             Column {
@@ -351,10 +384,10 @@ fun HomeContent(
                                 Text(centsToString(currentBudget.initialBalance - currentBudget.budgetedAmount))
                                 HorizontalDivider()
                                 Text("Spent Amount", style = MaterialTheme.typography.titleMedium)
-                                Text(centsToString(currentBudget.initialBalance - currentBudget.budgetedAmount))
+                                Text(centsToString(currentBudget.spentAmount))
                                 HorizontalDivider()
                                 Text("Budget Balance", style = MaterialTheme.typography.titleMedium)
-                                Text(centsToString(currentBudget.initialBalance - currentBudget.budgetedAmount))
+                                Text(centsToString(currentBudget.budgetedAmount - currentBudget.spentAmount))
                                 HorizontalDivider()
                             }
 
@@ -420,11 +453,84 @@ fun HomeContent(
                         }
                     }
                 }
+
+                if (showReplenishBudget) {
+                    Dialog(
+                        onDismissRequest = {
+                            showReplenishBudget = false
+                        }
+                    ) {
+                        Card {
+                            Column(
+                                modifier = Modifier.padding(24.dp).width(300.dp)
+                            ) {
+                                Text("Replenish Budget", style = MaterialTheme.typography.headlineLarge)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("This increases budget amount.")
+                                Text("New amount = current amount + amount entered", style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                BGainOutlineField(
+                                    Value = replenishAmount,
+                                    onValueChange = { replenishAmount = it },
+                                    labelStr = "Amount",
+                                    validator = {
+                                        replenishAmountErrorStatus = ErrorStatus(isError = false)
+                                        if (it.isEmpty()){
+                                            replenishAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Replenish Amount is required")
+                                            return@BGainOutlineField
+                                        }
+                                        if (it.toDoubleOrNull() == null) {
+                                            replenishAmountErrorStatus = ErrorStatus(isError = true, errorMsg = "Replenish Amount is invalid")
+                                            return@BGainOutlineField
+                                        }
+                                        if (it.toDoubleOrNull() != null){
+                                            val doubleReplenishAmount = it.toDouble()
+                                            // validate min/max
+
+                                            if (doubleReplenishAmount < 0.0) {
+                                                replenishAmountErrorStatus =
+                                                    ErrorStatus(isError = true, errorMsg = "Replenish Amount must be greater than 0")
+                                                return@BGainOutlineField
+                                            }
+                                        }
+                                    },
+                                    errorStatus = replenishAmountErrorStatus
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Row (
+                                    horizontalArrangement = Arrangement.End
+                                ){
+                                    TextButton(onClick = {
+                                        showReplenishBudget = false
+                                    }) {
+                                        Text("Cancel")
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    TextButton(onClick = {
+                                        if (replenishAmountErrorStatus.isError) {
+                                            return@TextButton
+                                        }
+                                        coroutineScope.launch {
+                                            onReplenishBudget(replenishAmount)
+                                            showReplenishBudget = false
+                                        }
+                                    }) {
+                                        Text("Replenish")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             QueryState.ERROR -> {
                 Text(text = "Something went wrong!")
             }
         }
+        AdMobBanner(
+            modifier = Modifier
+                .fillMaxWidth()
+        )
     }
 }
 

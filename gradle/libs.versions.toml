@@ -18,6 +18,7 @@ junit = "4.13.2"
 kermit = "2.0.8"
 kotlin = "2.3.0"
 androidx-navigation = "2.9.1"
+playServicesAds = "24.9.0"
 room = "2.8.4"
 ksp = "2.3.2"
 sqlite = "2.6.2"
@@ -35,6 +36,7 @@ androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", nam
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
 material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 sqlite-bundled = { module= "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
