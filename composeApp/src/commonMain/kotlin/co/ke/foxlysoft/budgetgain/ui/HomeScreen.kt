@@ -172,7 +172,7 @@ fun HomeContent(
             QueryState.NO_RESULTS -> {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxWidth().weight(1f)
                 ) {
                     Column{
                         Text(text = "Welcome! to Budget Gain.")
@@ -231,7 +231,9 @@ fun HomeContent(
                     }
                 }
 
-                Column{
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                ){
                     Row(
                         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer),
                         verticalAlignment = Alignment.CenterVertically
@@ -527,10 +529,7 @@ fun HomeContent(
                 Text(text = "Something went wrong!")
             }
         }
-        AdMobBanner(
-            modifier = Modifier
-                .fillMaxWidth()
-        )
+        AdMobBanner()
     }
 }
 
