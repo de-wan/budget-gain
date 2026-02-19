@@ -1,5 +1,6 @@
 package co.ke.foxlysoft.budgetgain.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -194,57 +195,64 @@ fun BGainOutlineField(
                 MonthYearPickerContent(
                     monthYear = Value,
                     onMonthYearChange = {
-                        onValueChange?.invoke(it)
+                        if (validator != null) {
+                            validator(it)
+                        }
+                        if (onValueChange != null) {
+                            onValueChange(it)
+                        }
                     },
                     onDismiss = { showMonthPicker = false}
                 )
             }
         }
-        OutlinedTextField(
-            value = Value,
-            onValueChange = {
-                hasInteracted = true;
-                if (validator != null) {
-                    validator(it)
-                };
-                if (onValueChange != null) {
-                    onValueChange(it)
-                }
-            },
-            label = bGainlabel,
-            modifier = modifier,
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
-            isError = (submitAttempted || hasInteracted) && errorStatus.isError,
-            supportingText = {
-                if ((submitAttempted || hasInteracted) && errorStatus.isError) {
-                    errorStatus.errorMsg?.let {
-                        Text(
-                            text = it, modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.bodySmall
-                        )
+        Box {
+            OutlinedTextField(
+                value = Value,
+                onValueChange = { },
+                readOnly = true,
+                label = bGainlabel,
+                modifier = modifier,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                isError = (submitAttempted || hasInteracted) && errorStatus.isError,
+                supportingText = {
+                    if ((submitAttempted || hasInteracted) && errorStatus.isError) {
+                        errorStatus.errorMsg?.let {
+                            Text(
+                                text = it, modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
-                }
-            },
-            leadingIcon = {
-                IconButton(onClick = { showMonthPicker = !showMonthPicker }) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Pick month"
-                    )
-                }
-            },
-            trailingIcon = {
-                if (Value != "") {
-                    IconButton(onClick = { onValueChange?.invoke("") }) {
+                },
+                leadingIcon = {
+                    IconButton(onClick = { showMonthPicker = !showMonthPicker }) {
                         Icon(
-                            imageVector = Icons.Outlined.Cancel,
+                            imageVector = Icons.Default.DateRange,
                             contentDescription = "Pick month"
                         )
                     }
+                },
+                trailingIcon = {
+                    if (Value != "") {
+                        IconButton(onClick = { onValueChange?.invoke("") }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Cancel,
+                                contentDescription = "Pick month"
+                            )
+                        }
+                    }
                 }
-            }
-        )
+            )
+            // Add a clickable modifier over the entire text field area
+            // to toggle the month picker dialog.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(onClick = { showMonthPicker = true })
+            )
+        }
     } else {
         OutlinedTextField(
             value = Value,
