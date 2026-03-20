@@ -32,6 +32,7 @@ fun <T> BGPaginatedList(
     onGetItem: @Composable (T) -> Unit,
     onGetSpacer: (@Composable () -> Unit)? = null,
     onGetItems: suspend (limit: Int, offset: Int) -> List<T>,
+    modifier: Modifier = Modifier,
     controller: BGainPaginationController = remember { BGainPaginationController() },
     ) {
     val coroutineScope = rememberCoroutineScope()
@@ -158,6 +159,7 @@ fun <T> BGPaginatedList(
     LazyColumn(
         state = lazyColumnListState,
         horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
     ) {
         items(
             itemsList.size,

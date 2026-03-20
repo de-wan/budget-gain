@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -30,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -153,6 +156,12 @@ fun UncategorizedMpesaSmsScreen(
         onOpenSnackbar = onOpenSnackbar
     )
 
+    LaunchedEffect(showBottomSheet) {
+        if (showBottomSheet) {
+            uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(categoryName)
+        }
+    }
+
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = {
@@ -176,6 +185,17 @@ fun UncategorizedMpesaSmsScreen(
                     labelStr = "Category",
                     Value = categoryName,
                     errorStatus = categoryNameErrorStatus,
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(categoryName)
+                            categoryNameAutoCompleteExpanded = !categoryNameAutoCompleteExpanded
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Show categories"
+                            )
+                        }
+                    },
                     onValueChange = {
                         println("Category name changed to $it")
                         uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(it)
@@ -198,6 +218,7 @@ fun UncategorizedMpesaSmsScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(max = 240.dp)
                                     .padding(horizontal = 32.dp)
                                     .zIndex(1f),
                             ) {

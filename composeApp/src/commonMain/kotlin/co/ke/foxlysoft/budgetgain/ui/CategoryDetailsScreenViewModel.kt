@@ -13,6 +13,7 @@ import co.ke.foxlysoft.budgetgain.repos.AccountRepository
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
 import co.ke.foxlysoft.budgetgain.repos.MerchantSummary
+import co.ke.foxlysoft.budgetgain.repos.MpesaSmsRepository
 import co.ke.foxlysoft.budgetgain.repos.TransactionRepository
 import co.ke.foxlysoft.budgetgain.utils.PaginationState
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class CategoryDetailsScreenViewModel(
     private val categoryId: Long,
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
+    private val mpesaSmsRepository: MpesaSmsRepository,
     private val accountRepository: AccountRepository,
     private val budgetRepository: BudgetRepository,
 ): ViewModel() {
@@ -78,6 +80,9 @@ class CategoryDetailsScreenViewModel(
         val budget = budgetRepository.getBudget(category.budgetId)
         budget.spentAmount -= transaction.amount
         budgetRepository.upsertBudget(budget)
+
+        // restore linked SMS back to uncategorized state
+        mpesaSmsRepository.restoreUncategorizedSms(transaction.id)
 
         // delete transaction
         transactionRepository.deleteTransaction(transaction)

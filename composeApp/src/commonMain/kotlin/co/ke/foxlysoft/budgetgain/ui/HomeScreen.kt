@@ -140,7 +140,6 @@ fun HomeContent(
 
     var showSelectBudgetDialog by remember { mutableStateOf(false) }
     var selectableBudgets by remember { mutableStateOf(emptyList<BudgetEntity>()) }
-    var budgetToActivate by remember { mutableStateOf(0L) }
 
     var showReplenishBudget by remember { mutableStateOf(false) }
     var replenishAmount by remember { mutableStateOf("") }
@@ -243,7 +242,7 @@ fun HomeContent(
                             onClick = {
                                 coroutineScope.launch {
                                     selectableBudgets = onGetAllBudgets()
-                                    budgetToActivate = currentBudget.id
+//                                    budgetToActivate = currentBudget.id
                                 }
                                 showSelectBudgetDialog = true
                             }
@@ -264,14 +263,6 @@ fun HomeContent(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = {
-                                replenishAmount = ""
-                                showReplenishBudget = true
-                            }
-                        ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
-                        }
                     }
 
                     PrimaryTabRow(
@@ -316,15 +307,6 @@ fun HomeContent(
                                             style = MaterialTheme.typography.titleMedium)
                                         Text("Ready for categorization")
                                         Row {
-                                            Button(onClick = {
-                                                onNavigate(
-                                                    Screens.AddCategoryScreen.createRoute(
-                                                        currentBudget.id
-                                                    )
-                                                )
-                                            }) {
-                                                Text("Replenish")
-                                            }
                                             Spacer(modifier = Modifier.weight(1f))
                                             Button(onClick = {
                                                 onNavigate(
@@ -409,47 +391,64 @@ fun HomeContent(
                             ) {
                                 Text("Select Budget", style = MaterialTheme.typography.headlineLarge)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text("This sets the selected budget as current budget")
+                                Text("Tap a budget to activate it")
                                 Spacer(modifier = Modifier.height(16.dp))
                                 for (budget in selectableBudgets) {
-                                    Row (
+                                    Row(
                                         Modifier
                                             .fillMaxWidth()
                                             .height(56.dp)
                                             .selectable(
-                                                selected = (budgetToActivate == budget.id),
-                                                onClick = { budgetToActivate = budget.id },
+                                                selected = (currentBudget.id == budget.id),
+                                                onClick = {
+                                                onActivateBudget(budget.id)
+                                                showSelectBudgetDialog = false
+                                            },
                                                 role = Role.RadioButton
                                             )
                                             .padding(horizontal = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
-                                    ){
+                                    ) {
                                         RadioButton(
-                                            selected = budgetToActivate == budget.id,
+                                            selected = currentBudget.id == budget.id,
                                             onClick = null
                                         )
-                                        Text(budget.yearMonth,
+                                        Text(
+                                            budget.yearMonth,
                                             style = MaterialTheme.typography.bodyLarge,
-                                            modifier = Modifier.padding(start = 16.dp))
+                                            modifier = Modifier.padding(start = 16.dp)
+                                        )
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                 }
-                                Spacer(modifier = Modifier.height(24.dp))
-                                Row (
-                                    horizontalArrangement = Arrangement.End
-                                ){
-                                    TextButton(onClick = {
-                                        showSelectBudgetDialog = false
-                                    }) {
-                                        Text("Cancel")
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    TextButton(onClick = {
-                                        onActivateBudget(budgetToActivate)
-                                        showSelectBudgetDialog = false
-                                    }) {
-                                        Text("Select")
-                                    }
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(8.dp))
+                                // Replenish item inside the selector
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .selectable(
+                                            selected = false,
+                                            onClick = {
+                                                showSelectBudgetDialog = false
+                                                replenishAmount = ""
+                                                showReplenishBudget = true
+                                            },
+                                            role = Role.Button
+                                        )
+                                        .padding(horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Replenish"
+                                    )
+                                    Text(
+                                        "Replenish Budget",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(start = 16.dp)
+                                    )
                                 }
                             }
                         }

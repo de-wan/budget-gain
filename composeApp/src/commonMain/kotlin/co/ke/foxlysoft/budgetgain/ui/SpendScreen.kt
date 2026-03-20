@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
@@ -18,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +68,23 @@ fun SpendScreen(
     val merchantAccounts by spendScreenViewModel.merchantAccounts.collectAsState()
     var merchantAutoCompleteExpanded by remember { mutableStateOf(false) }
 
+    val selectableCategories by spendScreenViewModel.selectableCategories.collectAsState()
+    var categoryName by remember { mutableStateOf(category?.name ?: "") }
+    var categoryNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
+    var categoryAutoCompleteExpanded by remember { mutableStateOf(false) }
+
+    // Sync categoryName display when category loads initially
+    LaunchedEffect(category) {
+        if (categoryName.isEmpty() && category != null) {
+            categoryName = category.name
+        }
+    }
+
+    // Preload categories on screen open
+    LaunchedEffect(Unit) {
+        spendScreenViewModel.updateCategorySearchQuery("")
+    }
+
     var ref by remember { mutableStateOf("") }
     var refErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
     var amount by remember { mutableStateOf("") }
@@ -96,6 +116,7 @@ fun SpendScreen(
         merchantErrorStatus = ErrorStatus(isError = false)
         descriptionErrorStatus = ErrorStatus(isError = false)
         timestampErrorStatus = ErrorStatus(isError = false)
+        categoryNameErrorStatus = ErrorStatus(isError = false)
     }
 
     fun isFormValid(): Boolean {
@@ -122,6 +143,12 @@ fun SpendScreen(
         }
         if (timestamp == null || timestamp!! <= 0L) {
             timestampErrorStatus = ErrorStatus(isError = true, errorMsg = "Timestamp is required")
+            isValid = false
+        }
+        // Validate category is selected from the list
+        val selectedCategory = selectableCategories.firstOrNull { it.name == categoryName }
+        if (categoryName.isEmpty() || selectedCategory == null) {
+            categoryNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Please select a category from the list")
             isValid = false
         }
         return isValid
@@ -177,10 +204,9 @@ fun SpendScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("${category?.name}", style = MaterialTheme.typography.headlineSmall)
+            Text("Category Balance: ${category?.amount?.minus(category.spentAmount)
+                ?.let { centsToString(it) } ?: "-"}")
         }
-        Text("Category Balance: ${category?.amount?.minus(category.spentAmount)
-            ?.let { centsToString(it) }}")
         if (spendError.isNotEmpty()) {
             Text(text = spendError, style = TextStyle(
                 Color.Red,
@@ -188,6 +214,64 @@ fun SpendScreen(
         }
         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column {
+                // Category autocomplete
+                BGainOutlineField(
+                    modifier = Modifier.fillMaxWidth(),
+                    labelStr = "Category",
+                    Value = categoryName,
+                    errorStatus = categoryNameErrorStatus,
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            spendScreenViewModel.updateCategorySearchQuery(categoryName)
+                            categoryAutoCompleteExpanded = !categoryAutoCompleteExpanded
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Show categories"
+                            )
+                        }
+                    },
+                    onValueChange = {
+                        categoryName = it
+                        spendScreenViewModel.updateCategorySearchQuery(it)
+                        categoryAutoCompleteExpanded = true
+                    },
+                    validator = {
+                        categoryNameErrorStatus = ErrorStatus(isError = false)
+                    },
+                    submitAttempted = submitAttempted
+                )
+                // Category dropdown popup
+                Box {
+                    if (categoryAutoCompleteExpanded && selectableCategories.isNotEmpty()) {
+                        Popup(
+                            onDismissRequest = { categoryAutoCompleteExpanded = false },
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 240.dp)
+                                    .padding(horizontal = 32.dp)
+                                    .zIndex(1f),
+                            ) {
+                                LazyColumn {
+                                    items(items = selectableCategories) { cat ->
+                                        TextButton(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            onClick = {
+                                                categoryName = cat.name
+                                                spendScreenViewModel.selectCategory(cat)
+                                                categoryAutoCompleteExpanded = false
+                                            },
+                                        ) {
+                                            Text(text = cat.name)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 BGainOutlineField(
                     modifier = Modifier
                         .fillMaxWidth(),

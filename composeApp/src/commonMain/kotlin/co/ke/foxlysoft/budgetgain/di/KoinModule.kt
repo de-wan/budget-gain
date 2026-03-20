@@ -98,6 +98,7 @@ val viewModelModule =
                 categoryId = categoryId,
                 categoryRepository = get(),
                 transactionRepository = get(),
+                mpesaSmsRepository = get(),
                 accountRepository = get(),
                 budgetRepository = get(),
             )

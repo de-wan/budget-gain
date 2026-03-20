@@ -29,6 +29,10 @@ class MpesaSmsRepository(db: AppDatabase) {
         return mpesaSmsDao.getMpesaSmsById(ids)
     }
 
+    suspend fun restoreUncategorizedSms(transactionId: Long) {
+        mpesaSmsDao.restoreUncategorizedSms(transactionId)
+    }
+
     suspend fun ignoreMpesaSms(id: Long) {
         mpesaSmsDao.ignoreMpesaSms(id)
     }

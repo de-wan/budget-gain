@@ -136,7 +136,9 @@ class UncategorizedMpesaSmsScreenViewModel(
                     _selectableCategories.value = it
                 }
             } else {
-                _selectableCategories.value = emptyList()
+                _selectableCategories.value = categoryRepository
+                    .getBudgetCategories(currentBudget.value.id)
+                    .sortedBy { it.name.lowercase() }
             }
         }
     }
