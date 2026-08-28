@@ -29,7 +29,7 @@ class CreateBudgetScreenViewModel(
         _searchJob = viewModelScope.launch {
             if (query.isNotEmpty()) {
                 delay(500)
-                budgetRepository.searchBudgetsByName(query).collectLatest {
+                budgetRepository.searchBudgetsByYearMonth(query).collectLatest {
                     _selectableBudgets.value = it
                 }
             } else {
@@ -50,7 +50,7 @@ class CreateBudgetScreenViewModel(
             budgetEntity.id = budgetId
 
             // copy categories from budget
-            val budgetToCopyCategoriesFrom = budgetRepository.getBudgetByName(copyCategoriesFrom)
+            val budgetToCopyCategoriesFrom = budgetRepository.getBudgetByYearMonth(copyCategoriesFrom)
             if (budgetToCopyCategoriesFrom != null) {
                 budgetEntity.budgetedAmount = budgetToCopyCategoriesFrom.budgetedAmount
 

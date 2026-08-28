@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,29 +33,65 @@ class SpendScreenViewModel(
     private val budgetRepository: BudgetRepository,
     private val transactionRepository: TransactionRepository
 ): ViewModel() {
-    val currentCategory: StateFlow<CategoryEntity?> = categoryRepository.getCategoryFlow(categoryId)
+    private val categorySelection = CategorySelectionState(categoryId)
+
+    val currentCategory: StateFlow<CategoryEntity?> = categorySelection.categoryId
+        .flatMapLatest { selectedId ->
+            if (selectedId == null) {
+                flowOf(null)
+            } else {
+                categoryRepository.getCategoryFlow(selectedId)
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
         )
 
+    private val _selectableCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
+    val selectableCategories: StateFlow<List<CategoryEntity>> = _selectableCategories
+
     private val _merchantAccounts = MutableStateFlow<List<AccountEntity>>(emptyList())
     val merchantAccounts: StateFlow<List<AccountEntity>> = _merchantAccounts
 
-    private var _searchJob: Job? = null
+    private var merchantSearchJob: Job? = null
+    private var categorySearchJob: Job? = null
 
     // Function to update the search query
     fun updateMerchantSearchQuery(query: String) {
-        _searchJob?.cancel()
-        _searchJob = viewModelScope.launch {
+        merchantSearchJob?.cancel()
+        merchantSearchJob = viewModelScope.launch {
             delay(500)
-            if (query.length >= 3) {
-                accountRepository.getSelectableMerchantAccounts(query).collectLatest {
-                    _merchantAccounts.value = it
+            accountRepository.getSelectableMerchantAccounts(query).collectLatest {
+                _merchantAccounts.value = it
+            }
+        }
+    }
+
+    fun selectCategory(category: CategoryEntity) {
+        categorySelection.select(category.id)
+    }
+
+    fun clearSelectedCategory() {
+        categorySelection.clear()
+    }
+
+    fun updateCategorySearchQuery(query: String) {
+        categorySearchJob?.cancel()
+        categorySearchJob = viewModelScope.launch {
+            val budgetId = currentCategory.value?.budgetId
+                ?: categoryRepository.getCategory(categoryId).budgetId
+
+            if (query.isNotBlank()) {
+                delay(500)
+                categoryRepository.searchBudgetCategoriesByName(budgetId, query).collectLatest {
+                    _selectableCategories.value = it.sortedBy { category -> category.name.lowercase() }
                 }
-            } else if(_merchantAccounts.value.isNotEmpty()) {
-                _merchantAccounts.value = emptyList()
+            } else {
+                _selectableCategories.value = categoryRepository
+                    .getBudgetCategories(budgetId)
+                    .sortedBy { it.name.lowercase() }
             }
         }
     }
@@ -103,7 +141,7 @@ class SpendScreenViewModel(
                         budgetId = budget.id,
                         debitAccountId = budgetAccount.id,
                         creditAccountId = merchantAccount!!.id,
-                        categoryId = categoryId,
+                        categoryId = currentCategoryProxy.id,
                         amount = amount,
                         timestamp = timestamp,
                     )

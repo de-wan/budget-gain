@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import co.ke.foxlysoft.budgetgain.utils.formatWithCommas
-import co.ke.foxlysoft.budgetgain.utils.isDigitStr
 
 @Composable
 fun CalculatorDialog(
@@ -36,6 +36,7 @@ fun CalculatorDialog(
 ) {
     var assistText by remember { mutableStateOf("")}
     var displayText by remember { mutableStateOf("0") }
+    var showZeroAmountPrompt by remember { mutableStateOf(false) }
 
     // Update display text state
     fun updateDisplay(text: String) {
@@ -45,6 +46,11 @@ fun CalculatorDialog(
     fun clearState() {
         updateDisplay("0")
         assistText = ""
+    }
+
+    fun isZeroAmount(value: String): Boolean {
+        val normalized = value.replace(",", "").trim()
+        return normalized.toDoubleOrNull()?.let { it == 0.0 } ?: false
     }
 
     // Handle button click
@@ -62,7 +68,7 @@ fun CalculatorDialog(
                 try {
                     val result = formatWithCommas(assistText.calc())
                     updateDisplay(result)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
 
                     updateDisplay("Error")
                 }
@@ -158,9 +164,13 @@ fun CalculatorDialog(
 
                 Row {
                     Button(onClick = {
-                        onApply(displayText)
-                        clearState()
-                        onDismissRequest()
+                        if (isZeroAmount(displayText)) {
+                            showZeroAmountPrompt = true
+                        } else {
+                            onApply(displayText)
+                            clearState()
+                            onDismissRequest()
+                        }
                     },) {
                         Text("Apply")
                     }
@@ -171,6 +181,30 @@ fun CalculatorDialog(
                     }) {
                         Text("Cancel")
                     }
+                }
+
+                if (showZeroAmountPrompt) {
+                    AlertDialog(
+                        onDismissRequest = { showZeroAmountPrompt = false },
+                        title = { Text("Amount is zero") },
+                        text = {
+                            Text("Finish your calculation or cancel and type the amount directly in the field.")
+                        },
+                        confirmButton = {
+                            Button(onClick = { showZeroAmountPrompt = false }) {
+                                Text("Continue")
+                            }
+                        },
+                        dismissButton = {
+                            Button(onClick = {
+                                showZeroAmountPrompt = false
+                                clearState()
+                                onDismissRequest()
+                            }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
                 }
 
             }

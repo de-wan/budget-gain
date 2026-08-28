@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.navigation.Screens
@@ -31,7 +32,20 @@ fun MerchantsScreen(
     merchantsScreenViewModel: MerchantsScreenViewModel = koinViewModel(),
     onNavigate: (String) -> Unit,
 ) {
+    MerchantsContent(
+        onGetBudgetSpend = merchantsScreenViewModel::getMerchantAccountBudgetSpend,
+        onGetMerchantAccounts = merchantsScreenViewModel::getMerchantAccounts,
+        onNavigate = onNavigate
+    )
 
+}
+
+@Composable
+fun MerchantsContent(
+    onGetBudgetSpend: suspend (Long) -> Long,
+    onGetMerchantAccounts: suspend (limit: Int, offset: Int) -> List<AccountEntity>,
+    onNavigate: (String) -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize()
             .padding(16.dp)
@@ -41,19 +55,18 @@ fun MerchantsScreen(
         BGPaginatedList(
             onGetKey = { it.id },
             onGetItem = { account ->
-                MerchantItem(merchantsScreenViewModel, account, onNavigate)
+                MerchantItem(onGetBudgetSpend, account, onNavigate)
             },
             onGetItems = { limit, offset ->
-                merchantsScreenViewModel.getMerchantAccounts(limit, offset)
+                onGetMerchantAccounts(limit, offset)
             }
         )
     }
-
 }
 
 @Composable
 fun MerchantItem(
-    merchantsScreenViewModel : MerchantsScreenViewModel,
+    onGetBudgetSpend: suspend (Long) -> Long,
     merchantAccount: AccountEntity,
     onNavigate: (String) -> Unit
 ) {
@@ -61,7 +74,7 @@ fun MerchantItem(
 
     var budgetSpend by remember{mutableStateOf("")}
     LaunchedEffect(key1 = Unit) {
-        budgetSpend = centsToString(merchantsScreenViewModel.getMerchantAccountBudgetSpend(merchantAccount.id))
+        budgetSpend = centsToString(onGetBudgetSpend(merchantAccount.id))
     }
 
     Card (
@@ -87,3 +100,34 @@ fun MerchantItem(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun MerchantsContentPreview() {
+    val sampleMerchants = listOf(
+        AccountEntity(
+            id = 1,
+            merchantName = "Starbucks Coffee",
+            balance = 45_000
+        ),
+        AccountEntity(
+            id = 2,
+            merchantName = "Uber",
+            balance = 32_500
+        ),
+        AccountEntity(
+            id = 3,
+            merchantName = "Amazon",
+            balance = 87_250
+        )
+    )
+
+    MaterialTheme {
+        MerchantsContent(
+            onGetBudgetSpend = { 25_000 },
+            onGetMerchantAccounts = { _, _ -> sampleMerchants },
+            onNavigate = {}
+        )
+    }
+}
+

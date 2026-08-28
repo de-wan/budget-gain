@@ -1,5 +1,6 @@
 package co.ke.foxlysoft.budgetgain.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
@@ -18,4 +19,5 @@ data class MpesaSmsEntity (
     var subjectSecondaryIdentifier: String,
     var cost: Long, // cents
     var balance: Long, // cents
+    var isIgnored: Boolean = false,
 )

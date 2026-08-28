@@ -55,12 +55,16 @@ class BudgetRepository(
         budgetDao.activateBudget(budgetId)
     }
 
-    fun searchBudgetsByName(search: String): Flow<List<BudgetEntity>> {
+    fun searchBudgetsByYearMonth(search: String): Flow<List<BudgetEntity>> {
         println("search: $search")
-        return budgetDao.searchBudgetsByName("%${search}%")
+        return budgetDao.searchBudgetsByMonth("%${search}%")
     }
 
-    suspend fun getBudgetByName(name: String): BudgetEntity? {
-        return budgetDao.getBudgetByName(name)
+    suspend fun getBudgetByYearMonth(name: String): BudgetEntity? {
+        return budgetDao.getBudgetByYearMonth(name)
+    }
+
+    suspend fun replenishBudget(budgetId: Long, amount: Long) {
+        return budgetDao.replenishBudget(budgetId, amount)
     }
 }

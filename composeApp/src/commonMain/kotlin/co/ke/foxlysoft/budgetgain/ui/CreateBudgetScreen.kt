@@ -52,16 +52,10 @@ fun CreateBudgetScreen(
 
     val selectableBudgets by createBudgetScreenViewModel.selectableBudgets.collectAsState()
 
-    var budgetName by remember { mutableStateOf("") }
-    var budgetNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var budgetAmount by remember { mutableStateOf("") }
     var budgetAmountErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
-    var startDate by remember { mutableStateOf(0L) }
-    var startDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
-    var startDateString by remember { mutableStateOf("") }
-    var endDate by remember { mutableStateOf(0L) }
-    var endDateErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
-    var endDateString by remember { mutableStateOf("") }
+    var budgetMonth by remember { mutableStateOf("") }
+    var budgetMonthErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var copyCategoriesFrom by remember { mutableStateOf("") }
     var copyCategoriesFromErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var copyCategoriesFromAutoCompleteExpanded by remember { mutableStateOf(false) }
@@ -69,15 +63,14 @@ fun CreateBudgetScreen(
     var submitAttempted by remember { mutableStateOf(false) }
 
     fun clearErrorStatus() {
-        budgetNameErrorStatus = ErrorStatus(isError = false)
+        budgetMonthErrorStatus = ErrorStatus(isError = false)
         budgetAmountErrorStatus = ErrorStatus(isError = false)
-        endDateErrorStatus = ErrorStatus(isError = false)
     }
 
     fun isFormValid(): Boolean {
         var isValid = true
-        if (budgetName.isEmpty()) {
-            budgetNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Name is required")
+        if (budgetMonth.isEmpty()) {
+            budgetMonthErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Month is required")
             isValid = false
         }
         if (budgetAmount.isEmpty()) {
@@ -88,19 +81,7 @@ fun CreateBudgetScreen(
                 ErrorStatus(isError = true, errorMsg = "Budget Amount is invalid")
             isValid = false
         }
-        if (startDate == 0L) {
-            startDateErrorStatus = ErrorStatus(isError = true, errorMsg = "Start Date is required")
-            isValid = false
-        }
-        if (endDate == 0L) {
-            endDateErrorStatus = ErrorStatus(isError = true, errorMsg = "End Date is required")
-            isValid = false
-        }
-        // end date must be greater than start date
-        if (startDate > 0L && endDate > 0L && startDate > endDate) {
-                endDateErrorStatus = ErrorStatus(isError = true, errorMsg = "End Date must be greater than Start Date")
-                isValid = false
-        }
+
         return isValid
     }
 
@@ -123,19 +104,15 @@ fun CreateBudgetScreen(
         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column {
                 BGainOutlineField(
+                    Value = budgetMonth,
+                    onValueChange = { month ->
+                        budgetMonth = month
+                    },
+                    labelStr = "Budget Month",
+                    errorStatus = budgetMonthErrorStatus,
+                    isMonthPicker = true,
                     modifier = Modifier
                         .fillMaxWidth(),
-                    labelStr = "Budget Name",
-                    Value = budgetName,
-                    errorStatus = budgetNameErrorStatus,
-                    onValueChange = { budgetName = it },
-                    validator = {
-                        if (it.isEmpty()){
-                            budgetNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Budget Name is required")
-                            return@BGainOutlineField
-                        }
-                        budgetNameErrorStatus = ErrorStatus(isError = false)
-                    },
                     submitAttempted = submitAttempted
                 )
                 BGainOutlineField(
@@ -166,31 +143,6 @@ fun CreateBudgetScreen(
                             )
                         }
                     }
-                )
-                BGainOutlineField(
-                    Value = startDateString,
-                    onDateChange = { millis, dateStr ->
-                        startDate = millis
-                        startDateString = dateStr },
-                    labelStr = "Start Date",
-                    errorStatus = startDateErrorStatus,
-                    isDatePicker = true,
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    submitAttempted = submitAttempted
-                )
-                BGainOutlineField(
-                    Value = endDateString,
-                    onDateChange = { millis, dateStr ->
-                        endDate =  millis
-                        endDateString = dateStr
-                                   },
-                    labelStr = "End Date",
-                    errorStatus = endDateErrorStatus,
-                    isDatePicker = true,
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    submitAttempted = submitAttempted
                 )
                 BGainOutlineField(
                     modifier = Modifier
@@ -229,11 +181,11 @@ fun CreateBudgetScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth(),
                                             onClick = {
-                                                copyCategoriesFrom = budget.name
+                                                copyCategoriesFrom = budget.yearMonth
                                                 copyCategoriesFromAutoCompleteExpanded = false
                                             },
                                         ){
-                                            Text(text = budget.name)
+                                            Text(text = budget.yearMonth)
                                         }
                                     }
 
@@ -258,10 +210,8 @@ fun CreateBudgetScreen(
                         }
 
                         val budget = BudgetEntity(
-                            name = budgetName,
+                            yearMonth = budgetMonth,
                             initialBalance = amountToCents(budgetAmount),
-                            startDate = startDate,
-                            endDate = endDate,
                             isActive = false,
                             budgetedAmount = 0L,
                             spentAmount = 0L

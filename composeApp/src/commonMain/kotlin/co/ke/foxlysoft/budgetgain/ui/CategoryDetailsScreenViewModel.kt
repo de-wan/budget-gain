@@ -12,6 +12,8 @@ import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import co.ke.foxlysoft.budgetgain.repos.AccountRepository
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
+import co.ke.foxlysoft.budgetgain.repos.MerchantSummary
+import co.ke.foxlysoft.budgetgain.repos.MpesaSmsRepository
 import co.ke.foxlysoft.budgetgain.repos.TransactionRepository
 import co.ke.foxlysoft.budgetgain.utils.PaginationState
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +33,7 @@ class CategoryDetailsScreenViewModel(
     private val categoryId: Long,
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
+    private val mpesaSmsRepository: MpesaSmsRepository,
     private val accountRepository: AccountRepository,
     private val budgetRepository: BudgetRepository,
 ): ViewModel() {
@@ -52,44 +55,37 @@ class CategoryDetailsScreenViewModel(
         return transactionRepository.getPagingCategoryTransactions(categoryId, limit, offset)
     }
 
-    fun getMerchantAccount(transaction: TransactionEntity, onComplete: (AccountEntity) -> Unit) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val acc = accountRepository.getAccount(transaction.creditAccountId)
-                onComplete(acc)
-            }
-        }
+    suspend fun getMerchantAccount(transaction: TransactionEntity): AccountEntity {
+        return accountRepository.getAccount(transaction.creditAccountId)
     }
 
     @Transaction
-    fun deleteTransaction(transaction: TransactionEntity, refreshAllPages: () -> Unit) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                // update credit account balance
-                val creditAccount = accountRepository.getAccount(transaction.creditAccountId)
-                creditAccount.balance -= transaction.amount
-                accountRepository.upsertAccount(creditAccount)
+    suspend fun deleteTransaction(transaction: TransactionEntity) {
+        // update credit account balance
+        val creditAccount = accountRepository.getAccount(transaction.creditAccountId)
+        val debitAccount = accountRepository.getAccount(transaction.debitAccountId)
+        val category = categoryRepository.getCategory(transaction.categoryId)
+        val budget = budgetRepository.getBudget(category.budgetId)
 
-                // update debit account balance
-                val debitAccount = accountRepository.getAccount(transaction.debitAccountId)
-                debitAccount.balance += transaction.amount
-                accountRepository.upsertAccount(debitAccount)
+        restoreTransactionAmounts(transaction, creditAccount, debitAccount, category, budget)
 
-                // update category spent amount
-                val category = categoryRepository.getCategory(transaction.categoryId)
-                category.spentAmount -= transaction.amount
-                categoryRepository.upsertCategory(category)
+        accountRepository.upsertAccount(creditAccount)
+        accountRepository.upsertAccount(debitAccount)
+        categoryRepository.upsertCategory(category)
+        budgetRepository.upsertBudget(budget)
 
-                // update budget spent amount
-                val budget = budgetRepository.getBudget(category.budgetId)
-                budget.spentAmount -= transaction.amount
-                budgetRepository.upsertBudget(budget)
+        // restore linked SMS back to uncategorized state
+        mpesaSmsRepository.restoreUncategorizedSms(transaction.id)
 
-                // delete transaction
-                transactionRepository.deleteTransaction(transaction)
+        // delete transaction
+        transactionRepository.deleteTransaction(transaction)
+    }
 
-                refreshAllPages()
-            }
-        }
+    suspend fun getMerchantSummaryForCategory(): List<MerchantSummary> {
+        return transactionRepository.getMerchantSummaryForCategory(categoryId)
+    }
+
+    suspend fun getCurrentMonthDailySpendByCategory() : List<Pair<Int, Long>> {
+        return transactionRepository.getCurrentMonthDailySpendByCategory(categoryId)
     }
 }

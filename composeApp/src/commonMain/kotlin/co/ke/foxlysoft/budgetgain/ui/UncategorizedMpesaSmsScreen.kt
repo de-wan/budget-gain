@@ -5,35 +5,34 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,18 +40,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
+import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
+import co.ke.foxlysoft.budgetgain.ui.components.BGainPaginationController
+import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
-import co.ke.foxlysoft.budgetgain.utils.PaginationState
+import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
@@ -64,42 +73,20 @@ fun UncategorizedMpesaSmsScreen(
     onOpenSnackbar: (String) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val lazyColumnListState = rememberLazyListState()
 
     val selectableCategories by uncategorizedMpesaSmsScreenViewModel.selectableCategories.collectAsStateWithLifecycle()
-
-    val smsList = uncategorizedMpesaSmsScreenViewModel.smsList.collectAsStateWithLifecycle().value
-    val pagingState = uncategorizedMpesaSmsScreenViewModel.pagingState.collectAsStateWithLifecycle()
-
     val smsToCategorize = remember { mutableStateOf<MpesaSmsEntity?>(null) }
+    val selectedSmsIds = remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var isMultiSelectMode by remember { mutableStateOf(false) }
     var categoryName by remember { mutableStateOf("") }
     var categoryNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
     var categoryNameAutoCompleteExpanded by remember { mutableStateOf(false) }
     var shouldCategorizeSimilarByMerchant by remember { mutableStateOf(true)}
     var submitAttempted by remember { mutableStateOf(false) }
-
-    LaunchedEffect(key1 = Unit) {
-        uncategorizedMpesaSmsScreenViewModel.clearPaging()
-        uncategorizedMpesaSmsScreenViewModel.getUncategorizedMpesaSms()
-    }
-
-    val shouldPaginate = remember {
-        derivedStateOf {
-            uncategorizedMpesaSmsScreenViewModel.canPaginate && (
-                    lazyColumnListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-                        ?: -5
-                    ) >= (lazyColumnListState.layoutInfo.totalItemsCount - 3)
-        }
-    }
-
-    LaunchedEffect(key1 = shouldPaginate.value) {
-        if (shouldPaginate.value && pagingState.value == PaginationState.REQUEST_INACTIVE) {
-            uncategorizedMpesaSmsScreenViewModel.getUncategorizedMpesaSms()
-        }
-    }
-
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    val search by uncategorizedMpesaSmsScreenViewModel.search.collectAsStateWithLifecycle()
 
     fun clearErrorStatus() {
         categoryNameErrorStatus = ErrorStatus(false)
@@ -112,7 +99,7 @@ fun UncategorizedMpesaSmsScreen(
             isValid = false
         } else {
             // check if category name in selectable category names
-            var isFound = false;
+            var isFound = false
             for (c in selectableCategories) {
                 if (c.name == categoryName) {
                     isFound = true
@@ -128,69 +115,50 @@ fun UncategorizedMpesaSmsScreen(
         return isValid
     }
 
-    Column (
-        modifier = Modifier.padding(8.dp)
-    ){
-        Text(text = "Uncategorized MPESA sms", style = MaterialTheme.typography.headlineMedium)
-        Text(text = "Page: ${uncategorizedMpesaSmsScreenViewModel.page}, Pagestate: ${pagingState.value}, Can paginate: ${uncategorizedMpesaSmsScreenViewModel.canPaginate}")
-        Spacer(modifier = Modifier.height(8.dp))
-        ElevatedCard (
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
-        ) {
-            LazyColumn(
-                state = lazyColumnListState,
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                items(
-                    smsList.size,
-                    key = { smsList[it].id },
-                ) { index ->
-                    SmsItem(smsList[index], onCategorize = {
-                        smsToCategorize.value = smsList[index]
-                        showBottomSheet = true
-                    })
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-            }
-        }
+    val paginationController = remember { BGainPaginationController() }
 
-        when (pagingState.value) {
-            PaginationState.LOADING -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+    UncategorizedMpesaSmsContent(
+        onGetItems = uncategorizedMpesaSmsScreenViewModel::getUncategorizedMpesaSms,
+        onCategorize = {
+            smsToCategorize.value = it
+            showBottomSheet = true
+        },
+        onIgnoreSms = {sms ->
+            coroutineScope.launch {
+                uncategorizedMpesaSmsScreenViewModel.ignoreSingleSms(sms)
+                paginationController.refreshAllPages()
             }
-            PaginationState.REQUEST_INACTIVE -> {
-//                Text(text = "Request Inactive")
+            onOpenSnackbar("SMS successfully ignored")
+        },
+        paginationController = paginationController,
+        search = search,
+        onSearchChange = uncategorizedMpesaSmsScreenViewModel::onSearchChange,
+        selectedSmsIds = selectedSmsIds.value,
+        isMultiSelectMode = isMultiSelectMode,
+        onEnterMultiSelectMode = { smsId: Long ->
+            selectedSmsIds.value += smsId
+            isMultiSelectMode = true
+        },
+        onToggleSelection = { smsId: Long ->
+            if (selectedSmsIds.value.contains(smsId)) {
+                selectedSmsIds.value -= smsId
+            } else {
+                selectedSmsIds.value += smsId
             }
-            PaginationState.PAGINATING -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            PaginationState.ERROR -> {
-//                Text(text = "Error")
-            }
-            PaginationState.PAGINATION_EXHAUST -> {
-//                Text(text = "Pagination Exhaust")
-            }
-            PaginationState.EMPTY -> {
-//                Text(text = "Empty")
-            }
+        },
+        onCategorizeSelected = {
+            showBottomSheet = true
+        },
+        onClearSelection = {
+            isMultiSelectMode = false
+            selectedSmsIds.value = emptySet()
+        },
+        onOpenSnackbar = onOpenSnackbar
+    )
+
+    LaunchedEffect(showBottomSheet) {
+        if (showBottomSheet) {
+            uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(categoryName)
         }
     }
 
@@ -205,7 +173,11 @@ fun UncategorizedMpesaSmsScreen(
                 modifier = Modifier
                     .padding(16.dp)
             ) {
-                Text(text = "Categorize Sms", style = MaterialTheme.typography.headlineSmall)
+                val isBulkMode = isMultiSelectMode && selectedSmsIds.value.isNotEmpty()
+                Text(
+                    text = if (isBulkMode) "Categorize ${selectedSmsIds.value.size} SMS" else "Categorize SMS",
+                    style = MaterialTheme.typography.headlineSmall
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 BGainOutlineField(
                     modifier = Modifier
@@ -213,6 +185,17 @@ fun UncategorizedMpesaSmsScreen(
                     labelStr = "Category",
                     Value = categoryName,
                     errorStatus = categoryNameErrorStatus,
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(categoryName)
+                            categoryNameAutoCompleteExpanded = !categoryNameAutoCompleteExpanded
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Show categories"
+                            )
+                        }
+                    },
                     onValueChange = {
                         println("Category name changed to $it")
                         uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(it)
@@ -235,6 +218,7 @@ fun UncategorizedMpesaSmsScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(max = 240.dp)
                                     .padding(horizontal = 32.dp)
                                     .zIndex(1f),
                             ) {
@@ -263,10 +247,18 @@ fun UncategorizedMpesaSmsScreen(
                     verticalAlignment = Alignment.CenterVertically
 
                 ){
-                    var dispName = smsToCategorize.value?.subjectSecondaryIdentifier ?: ""
-                    if (dispName.isEmpty()) {
-                        dispName = smsToCategorize.value?.subjectPrimaryIdentifier ?: ""
+                    val isBulkMode = isMultiSelectMode && selectedSmsIds.value.isNotEmpty()
+                    val dispName = if (isBulkMode) {
+                        "${selectedSmsIds.value.size} items"
+                    } else {
+                        val secondary = smsToCategorize.value?.subjectSecondaryIdentifier ?: ""
+                        if (secondary.isEmpty()) {
+                            smsToCategorize.value?.subjectPrimaryIdentifier ?: ""
+                        } else {
+                            secondary
+                        }
                     }
+
                     Text(text = "Categorize all transactions by $dispName", modifier = Modifier.weight(5f))
                     Checkbox(checked = shouldCategorizeSimilarByMerchant,
                         modifier = Modifier.weight(1f),
@@ -283,54 +275,199 @@ fun UncategorizedMpesaSmsScreen(
                         if (!isCategorizeFormValid()) {
                             return@Button
                         }
-                        uncategorizedMpesaSmsScreenViewModel.categorizeSms(
-                            categoryName,
-                            smsToCategorize.value!!,
-                            shouldCategorizeSimilarByMerchant,
-                            onComplete = {
-                                uncategorizedMpesaSmsScreenViewModel.clearPaging()
-                                uncategorizedMpesaSmsScreenViewModel.getUncategorizedMpesaSms()
-                                onOpenSnackbar("Sms successfully categorized")
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try {
+                                val isBulkMode = isMultiSelectMode && selectedSmsIds.value.isNotEmpty()
+
+                                if (isBulkMode) {
+                                    uncategorizedMpesaSmsScreenViewModel.categorizeBulkSms(
+                                        categoryName,
+                                        selectedSmsIds.value,
+                                        shouldCategorizeSimilarByMerchant
+                                    )
+                                } else {
+                                    uncategorizedMpesaSmsScreenViewModel.categorizeSms(
+                                        categoryName,
+                                        smsToCategorize.value!!,
+                                        shouldCategorizeSimilarByMerchant
+                                    )
+                                }
+
+                                paginationController.refreshAllPages()
+                                onOpenSnackbar("SMS successfully categorized")
                                 showBottomSheet = false
 
                                 // reset form
                                 smsToCategorize.value = null
+                                selectedSmsIds.value = emptySet()
+                                isMultiSelectMode = false
                                 categoryName = ""
                                 categoryNameErrorStatus = ErrorStatus(isError = false)
                                 categoryNameAutoCompleteExpanded = false
                                 shouldCategorizeSimilarByMerchant = true
                                 submitAttempted = false
-                            },
-                            onError = {
-                                onOpenSnackbar("Error categorizing sms: ${it.message}")
-                            }
-                        )
 
-                        
+                            } catch (e: Exception) {
+                                onOpenSnackbar("Error categorizing sms: ${e.message}")
+                            }
+                        }
                 }){
-                    Text(text = "Categorize Sms")
+                    Text(text = "Categorize SMS")
                 }
             }
-
-
         }
+    }
+}
+
+@Composable
+fun UncategorizedMpesaSmsContent(
+    onGetItems: suspend (Int, Int) -> List<MpesaSmsEntity>,
+    paginationController: BGainPaginationController = remember { BGainPaginationController() },
+    onIgnoreSms: (MpesaSmsEntity) -> Unit = {},
+    onCategorize: (MpesaSmsEntity) -> Unit = {},
+    onEnterMultiSelectMode: (Long) -> Unit,
+    onToggleSelection: (Long) -> Unit,
+    search: String = "",
+    onSearchChange: (String) -> Unit = {},
+    selectedSmsIds: Set<Long> = emptySet(),
+    isMultiSelectMode: Boolean = false,
+    onClearSelection: () -> Unit = {},
+    onCategorizeSelected: () -> Unit = {},
+    onOpenSnackbar: (String) -> Unit = {}
+) {
+    Column {
+        Text(text = "Uncategorized MPESA sms", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Show either search bar or bulk actions bar
+        if (isMultiSelectMode) {
+            // Bulk actions bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${selectedSmsIds.size} selected",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                    IconButton(
+                        onClick = { onClearSelection() },
+                        modifier = Modifier.padding(0.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear selection"
+                        )
+                    }
+                }
+                Button(
+                    onClick = onCategorizeSelected,
+                    modifier = Modifier.padding(end = 16.dp)
+                ) {
+                    Text("Categorize")
+                }
+            }
+        } else {
+            // Search bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BGainOutlineField(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(0.dp),
+                    labelStr = "Search",
+                    Value = search,
+                    errorStatus = ErrorStatus(isError = false),
+                    onValueChange = {onSearchChange(it)},
+                    validator = {},
+                )
+                IconButton(onClick = {
+                    paginationController.refresh()
+                }){
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                }
+            }
+        }
+
+        BGPaginatedList(
+            onGetKey = { it.id },
+            onGetItem = { sms ->
+                SmsItem(
+                    sms = sms,
+                    isSelected = selectedSmsIds.contains(sms.id),
+                    isMultiSelectMode = isMultiSelectMode,
+                    onLongPress = { onEnterMultiSelectMode(sms.id) },
+                    onToggleSelection = { onToggleSelection(sms.id) },
+                    onIgnoreSms = onIgnoreSms,
+                    onCategorize = onCategorize
+                )
+            },
+            onGetItems = { limit, offset ->
+                onGetItems(limit, offset)
+            },
+            controller = paginationController,
+        )
     }
 }
 
 @Composable
 fun SmsItem(
     sms: MpesaSmsEntity,
-    onCategorize: () -> Unit = {}
+    isSelected: Boolean = false,
+    isMultiSelectMode: Boolean = false,
+    onLongPress: () -> Unit = {},
+    onToggleSelection: () -> Unit = {},
+    onIgnoreSms: (MpesaSmsEntity) -> Unit = {},
+    onCategorize: (MpesaSmsEntity) -> Unit = {}
 ) {
     // State to track the expanded state of the menu
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card {
+    Card(
+        modifier = if (isMultiSelectMode) {
+            Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = { onLongPress() },
+                        onTap = { onToggleSelection() }
+                    )
+                }
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = { onLongPress() }
+                    )
+                }
+        }
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Show checkbox in multi-select mode
+            if (isMultiSelectMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onToggleSelection() },
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
+
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -358,30 +495,172 @@ fun SmsItem(
                 }
 
             }
-            // Dropdown menu
-            Box {
-                IconButton(onClick = {
-                    menuExpanded = true
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Menu"
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
-                ) {
-                    DropdownMenuItem(onClick = {
-                        onCategorize()
-                        menuExpanded = false
-                    },
-                        text = {
-                            Text("Categorize")
-                        })
+            // Show menu only when not in multi-select mode
+            if (!isMultiSelectMode) {
+                Box {
+                    IconButton(onClick = {
+                        menuExpanded = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Menu"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(onClick = {
+                            onCategorize(sms)
+                            menuExpanded = false
+                        },
+                            text = {
+                                Text("Categorize")
+                            })
+                        DropdownMenuItem(onClick = {
+                            onIgnoreSms(sms)
+                            menuExpanded = false
+                        },
+                            text = {
+                                Text("Ignore")
+                            })
+                    }
                 }
             }
         }
 
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun UncategorizedMpesaSmsContentPreview() {
+    val currentTime = 1707300000000L // Sample timestamp
+    val sampleSms = listOf(
+        MpesaSmsEntity(
+            id = 1,
+            transactionId = 1001,
+            smsType = MpesaSmsTypes.SEND_MONEY,
+            ref = "MMP1234567",
+            amount = 25_000,
+            dateTime = currentTime,
+            subjectPrimaryIdentifierType = "phone",
+            subjectPrimaryIdentifier = "+254712345678",
+            subjectSecondaryIdentifierType = "name",
+            subjectSecondaryIdentifier = "John Doe",
+            cost = 10,
+            balance = 500_000
+        ),
+        MpesaSmsEntity(
+            id = 2,
+            transactionId = 1002,
+            smsType = MpesaSmsTypes.RECEIVE_MONEY,
+            ref = "MMP1234568",
+            amount = 50_000,
+            dateTime = currentTime,
+            subjectPrimaryIdentifierType = "phone",
+            subjectPrimaryIdentifier = "+254787654321",
+            subjectSecondaryIdentifierType = "name",
+            subjectSecondaryIdentifier = "Jane Smith",
+            cost = 0,
+            balance = 550_000
+        ),
+        MpesaSmsEntity(
+            id = 3,
+            transactionId = 1003,
+            smsType = MpesaSmsTypes.PAYBILL,
+            ref = "MMP1234569",
+            amount = 15_000,
+            dateTime = currentTime,
+            subjectPrimaryIdentifierType = "paybill",
+            subjectPrimaryIdentifier = "100100",
+            subjectSecondaryIdentifierType = "account",
+            subjectSecondaryIdentifier = "ACC123",
+            cost = 50,
+            balance = 535_000
+        )
+    )
+
+    BudgetGainTheme {
+        Surface {
+            UncategorizedMpesaSmsContent(
+                onGetItems = { _, _ -> sampleSms },
+                onCategorize = {},
+                onEnterMultiSelectMode = {},
+                onToggleSelection = {},
+                search = "",
+                onSearchChange = {},
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun UncategorizedMpesaSmsContentMultiselectPreview() {
+    val currentTime = 1707300000000L // Sample timestamp
+    val sampleSms = listOf(
+        MpesaSmsEntity(
+            id = 1,
+            transactionId = 1001,
+            smsType = MpesaSmsTypes.SEND_MONEY,
+            ref = "MMP1234567",
+            amount = 25_000,
+            dateTime = currentTime,
+            subjectPrimaryIdentifierType = "phone",
+            subjectPrimaryIdentifier = "+254712345678",
+            subjectSecondaryIdentifierType = "name",
+            subjectSecondaryIdentifier = "John Doe",
+            cost = 10,
+            balance = 500_000
+        ),
+        MpesaSmsEntity(
+            id = 2,
+            transactionId = 1002,
+            smsType = MpesaSmsTypes.RECEIVE_MONEY,
+            ref = "MMP1234568",
+            amount = 50_000,
+            dateTime = currentTime,
+            subjectPrimaryIdentifierType = "phone",
+            subjectPrimaryIdentifier = "+254787654321",
+            subjectSecondaryIdentifierType = "name",
+            subjectSecondaryIdentifier = "Jane Smith",
+            cost = 0,
+            balance = 550_000
+        ),
+        MpesaSmsEntity(
+            id = 3,
+            transactionId = 1003,
+            smsType = MpesaSmsTypes.PAYBILL,
+            ref = "MMP1234569",
+            amount = 15_000,
+            dateTime = currentTime,
+            subjectPrimaryIdentifierType = "paybill",
+            subjectPrimaryIdentifier = "100100",
+            subjectSecondaryIdentifierType = "account",
+            subjectSecondaryIdentifier = "ACC123",
+            cost = 50,
+            balance = 535_000
+        )
+    )
+
+    val selectedSmsIds = remember { mutableStateOf<Set<Long>>(emptySet()) }
+    selectedSmsIds.value += 3
+
+
+    BudgetGainTheme {
+        Surface {
+            UncategorizedMpesaSmsContent(
+                selectedSmsIds = selectedSmsIds.value,
+                onGetItems = { _, _ -> sampleSms },
+                onCategorize = {},
+                onEnterMultiSelectMode = {},
+                onToggleSelection = {},
+                isMultiSelectMode = true,
+                search = "",
+                onSearchChange = {},
+            )
+        }
+    }
+}
+

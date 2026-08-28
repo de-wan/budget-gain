@@ -15,7 +15,7 @@ class AccountRepository(db: AppDatabase) {
         if (budgetAccount == null || budgetAccount.id == 0L) {
             budgetAccount = AccountEntity(
                 type = "debit",
-                name = "Budget ${budget.name} Account",
+                name = "Budget ${budget.yearMonth} Account",
                 balance = budget.initialBalance,
                 budgetId = budget.id,
                 holderType = AccountHolderType.BUDGET,

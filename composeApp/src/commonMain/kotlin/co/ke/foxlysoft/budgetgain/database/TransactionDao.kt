@@ -14,6 +14,9 @@ interface TransactionDao {
     @Delete
     suspend fun delete(transactionEntity: TransactionEntity)
 
+    @Query("SELECT * FROM TransactionEntity WHERE budgetId = :budgetId")
+    fun getBudgetTransactions(budgetId: Long): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM TransactionEntity WHERE categoryId = :categoryId")
     fun getCategoryTransactions(categoryId: Long): Flow<List<TransactionEntity>>
 
@@ -24,5 +27,8 @@ interface TransactionDao {
     suspend fun getPagingMerchantTransactions(budgetId: Long, accountId: Long, limit: Int, offset: Int): List<TransactionEntity>
 
     @Query("SELECT EXISTS(SELECT 1 FROM TransactionEntity WHERE ref = :ref)")
-    fun existsByRef(ref: String): Boolean
+    suspend fun existsByRef(ref: String): Boolean
+
+    @Query("SELECT * FROM TransactionEntity WHERE ref = :ref LIMIT 1")
+    suspend fun getByRef(ref: String): TransactionEntity?
 }

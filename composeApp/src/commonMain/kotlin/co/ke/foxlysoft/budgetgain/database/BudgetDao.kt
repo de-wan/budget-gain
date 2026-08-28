@@ -14,7 +14,7 @@ interface BudgetDao {
     @Delete
     suspend fun delete(budgetEntity: BudgetEntity)
 
-    @Query("SELECT * FROM BudgetEntity")
+    @Query("SELECT * FROM BudgetEntity ORDER BY yearMonth DESC")
     fun getAll(): Flow<List<BudgetEntity>>
 
     @Query("SELECT * FROM BudgetEntity WHERE isActive = 1")
@@ -42,9 +42,12 @@ interface BudgetDao {
         activateBudgetPart(budgetId)
     }
 
-    @Query("SELECT * FROM BudgetEntity WHERE name LIKE :search ORDER BY name DESC LIMIT 10")
-    fun searchBudgetsByName(search: String): Flow<List<BudgetEntity>>
+    @Query("SELECT * FROM BudgetEntity WHERE yearMonth LIKE :search ORDER BY yearMonth DESC LIMIT 10")
+    fun searchBudgetsByMonth(search: String): Flow<List<BudgetEntity>>
 
-    @Query("SELECT * FROM BudgetEntity WHERE name = :name")
-    suspend fun getBudgetByName(name: String): BudgetEntity?
+    @Query("SELECT * FROM BudgetEntity WHERE yearMonth = :yearMonth")
+    suspend fun getBudgetByYearMonth(yearMonth: String): BudgetEntity?
+
+    @Query("UPDATE BudgetEntity SET initialBalance = initialBalance + :amount WHERE id = :budgetId")
+    suspend fun replenishBudget(budgetId: Long, amount: Long)
 }

@@ -9,13 +9,17 @@ import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
 import co.ke.foxlysoft.budgetgain.repos.MpesaSmsRepository
 import co.ke.foxlysoft.budgetgain.repos.SettingsRepository
+import co.ke.foxlysoft.budgetgain.repos.TransactionRepository
 import co.ke.foxlysoft.budgetgain.utils.QueryState
+import co.ke.foxlysoft.budgetgain.utils.amountToCents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class HomeScreenViewModel(
+    private val transactionRepository: TransactionRepository,
     private val settingsRepository: SettingsRepository,
     private val budgetRepository: BudgetRepository,
     private val categoryRepository: CategoryRepository,
@@ -56,6 +60,25 @@ class HomeScreenViewModel(
         )
     }
 
+    suspend fun getAllBudgets(): List<BudgetEntity> {
+        return budgetRepository.getAllBudgets().first()
+    }
+
+    fun activateBudget(budgetId: Long) {
+        if (budgetId == currentBudget.value.id) {
+            return
+        }
+
+        _pageState.value = QueryState.LOADING
+        viewModelScope.launch {
+            budgetRepository.activateBudget(budgetId)
+        }
+    }
+
+    suspend fun replenishBudget(replenishAmount: String) {
+        val replenishAmountCents = amountToCents(replenishAmount)
+        budgetRepository.replenishBudget(currentBudget.value.id, replenishAmountCents)
+    }
 
     suspend fun getBudgetCategories(limit : Int, offset : Int): List<CategoryEntity> {
         val budgetId = currentBudget.value.id
@@ -77,5 +100,10 @@ class HomeScreenViewModel(
         viewModelScope.launch {
             settingsRepository.setSetting("firstTime", "true")
         }
+    }
+
+    suspend fun getCurrentMonthDailySpend() : List<Pair<Int, Long>> {
+        val currentBudget = budgetRepository.getCurrentBudget()
+        return transactionRepository.getCurrentMonthDailySpend(currentBudget.id)
     }
 }
