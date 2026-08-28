@@ -9,7 +9,7 @@ import kotlin.test.assertFailsWith
 
 fun hypotenuse(x: Double, y: Double): Double = sqrt(x*x + y*y)
 
-class DLSTest {
+class DSLTest {
     @Test
     fun checkSimpleDSL() {
         val kvl = Calc.create {
