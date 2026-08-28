@@ -12,6 +12,7 @@ import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreen
 import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreen
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreen
 import co.ke.foxlysoft.budgetgain.ui.CreateBudgetScreen
+import co.ke.foxlysoft.budgetgain.ui.DailyUsageScreen
 import co.ke.foxlysoft.budgetgain.ui.EditCategoryScreen
 import co.ke.foxlysoft.budgetgain.ui.HomeScreen
 import co.ke.foxlysoft.budgetgain.ui.MerchantTransactionsScreen
@@ -162,12 +163,7 @@ fun AppNavHost(
         animatedComposable(
             Screens.DailyUsage.route,
         ) {
-            UncategorizedMpesaSmsScreen(
-                onNavigate = {route ->
-                    navHostController.navigate(route)
-                },
-                onOpenSnackbar = onOpenSnackbar
-            )
+            DailyUsageScreen()
         }
     }
 }
