@@ -17,7 +17,7 @@ fun getDatabaseBuilder(context: android.content.Context) = with(context) {
 
 fun getRoomDatabase(ctx: Context): AppDatabase {
     return getDatabaseBuilder(ctx)
-        .fallbackToDestructiveMigration(true)
+        .addMigrations(*APP_DATABASE_MIGRATIONS)
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()

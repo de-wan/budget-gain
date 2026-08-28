@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.savedstate.read
 import co.ke.foxlysoft.budgetgain.ui.AddCategoryScreen
 import co.ke.foxlysoft.budgetgain.ui.AllBudgetsScreen
 import co.ke.foxlysoft.budgetgain.ui.CategoryDetailsScreen
@@ -65,7 +66,7 @@ fun AppNavHost(
                 }
             )
         ) { navBackStackEntry ->
-            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            val id = navBackStackEntry.arguments?.read { getLong("id") } ?: 0L
             AddCategoryScreen(
                 onNavigateBack = {
                         navHostController.popBackStack()
@@ -82,7 +83,7 @@ fun AppNavHost(
                 }
             )
         ) { navBackStackEntry ->
-            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            val id = navBackStackEntry.arguments?.read { getLong("id") } ?: 0L
             EditCategoryScreen(
                 onNavigateBack = {
                     navHostController.popBackStack()
@@ -99,7 +100,7 @@ fun AppNavHost(
                 },
             )
         ) { navBackStackEntry ->
-            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            val id = navBackStackEntry.arguments?.read { getLong("id") } ?: 0L
             SpendScreen(
                 onNavigateBack = {
                     navHostController.popBackStack()
@@ -117,7 +118,7 @@ fun AppNavHost(
                 }
             )
         ) { navBackStackEntry ->
-            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            val id = navBackStackEntry.arguments?.read { getLong("id") } ?: 0L
             CategoryDetailsScreen(
                 onNavigateBack = {
                     navHostController.popBackStack()
@@ -153,7 +154,7 @@ fun AppNavHost(
                 }
             )
         ) { navBackStackEntry ->
-            val id = navBackStackEntry.arguments?.getLong("id") ?: 0L
+            val id = navBackStackEntry.arguments?.read { getLong("id") } ?: 0L
             MerchantTransactionsScreen(
                 merchantId = id
             )

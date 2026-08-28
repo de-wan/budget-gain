@@ -1,7 +1,7 @@
 package co.ke.foxlysoft.budgetgain.shared
 
 actual class SmsReader {
-    actual fun getMpesaSms(fromDate: Long, toDate: Long): List<String> {
+    actual fun getMpesaSms(fromDate: Long, toDate: Long, searchQuery: String?): List<String> {
         TODO("Not yet implemented")
     }
 }

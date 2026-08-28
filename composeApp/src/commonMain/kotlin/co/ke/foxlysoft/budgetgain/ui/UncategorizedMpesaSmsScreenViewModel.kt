@@ -268,22 +268,23 @@ class UncategorizedMpesaSmsScreenViewModel(
                 val selectedIds = selectedSmsIds.mapNotNull { it as? Long }.toSet()
                 val selectedSms = mpesaSmsRepository.getMpesaSmsById(selectedIds.toList())
                     .filter { it.transactionId == 0L }
-                val smsIds = selectedSms.mapTo(linkedSetOf()) { it.id }
+                val similarSms = mutableListOf<MpesaSmsEntity>()
 
                 if (shouldCategorizeSimilarByMerchant) {
                     val (from, to) = getBudgetDates()
                     selectedSms.forEach { sms ->
-                        smsIds += mpesaSmsRepository.getMpesaSmsByIdentifier(
+                        similarSms += mpesaSmsRepository.getMpesaSmsByIdentifier(
                             sms.subjectPrimaryIdentifier,
                             sms.subjectPrimaryIdentifierType,
                             sms.subjectSecondaryIdentifier,
                             sms.subjectSecondaryIdentifierType,
                             from,
                             to
-                        ).map { it.id }
+                        )
                     }
                 }
 
+                val smsIds = categorizationSmsIds(selectedSms, similarSms)
                 smsIds.forEach { categorizeSingleSms(categoryName, it) }
             }
         } catch (e: Exception) {

@@ -41,5 +41,5 @@ interface CategoryDao {
     fun searchBudgetCategoriesByName(budgetId: Long, search: String): Flow<List<CategoryEntity>>
 
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId AND name = :name")
-    fun getBudgetCategoryByName(budgetId: Long, name: String): CategoryEntity
+    suspend fun getBudgetCategoryByName(budgetId: Long, name: String): CategoryEntity
 }

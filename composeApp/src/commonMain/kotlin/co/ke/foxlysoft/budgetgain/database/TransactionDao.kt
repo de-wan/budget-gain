@@ -27,7 +27,7 @@ interface TransactionDao {
     suspend fun getPagingMerchantTransactions(budgetId: Long, accountId: Long, limit: Int, offset: Int): List<TransactionEntity>
 
     @Query("SELECT EXISTS(SELECT 1 FROM TransactionEntity WHERE ref = :ref)")
-    fun existsByRef(ref: String): Boolean
+    suspend fun existsByRef(ref: String): Boolean
 
     @Query("SELECT * FROM TransactionEntity WHERE ref = :ref LIMIT 1")
     suspend fun getByRef(ref: String): TransactionEntity?

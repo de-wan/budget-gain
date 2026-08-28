@@ -13,7 +13,7 @@ fun getDatabaseBuilder() = Room.databaseBuilder<AppDatabase>(
 
 fun getRoomDatabase(): AppDatabase {
     return getDatabaseBuilder()
-        .fallbackToDestructiveMigration(true)
+        .addMigrations(*APP_DATABASE_MIGRATIONS)
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()

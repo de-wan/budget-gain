@@ -14,7 +14,7 @@ interface MpesaSmsDao {
     suspend fun update(mpesaSmsEntity: MpesaSmsEntity)
 
     @Query("SELECT EXISTS(SELECT 1 FROM MpesaSmsEntity WHERE ref = :ref)")
-    fun existsByRef(ref: String): Boolean
+    suspend fun existsByRef(ref: String): Boolean
 
     @Query("SELECT * FROM MpesaSmsEntity WHERE transactionId = 0 AND (subjectPrimaryIdentifier LIKE '%' || :search || '%' OR subjectSecondaryIdentifier LIKE '%' || :search || '%') AND isIgnored = false AND dateTime BETWEEN :from AND :to ORDER BY dateTime DESC LIMIT :limit OFFSET :offset")
     suspend fun getPagingUncategorizedMpesaSms(limit: Int, offset: Int, search: String? = null, from: Long, to: Long) : List<MpesaSmsEntity>

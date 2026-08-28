@@ -63,22 +63,15 @@ class CategoryDetailsScreenViewModel(
     suspend fun deleteTransaction(transaction: TransactionEntity) {
         // update credit account balance
         val creditAccount = accountRepository.getAccount(transaction.creditAccountId)
-        creditAccount.balance -= transaction.amount
-        accountRepository.upsertAccount(creditAccount)
-
-        // update debit account balance
         val debitAccount = accountRepository.getAccount(transaction.debitAccountId)
-        debitAccount.balance += transaction.amount
-        accountRepository.upsertAccount(debitAccount)
-
-        // update category spent amount
         val category = categoryRepository.getCategory(transaction.categoryId)
-        category.spentAmount -= transaction.amount
-        categoryRepository.upsertCategory(category)
-
-        // update budget spent amount
         val budget = budgetRepository.getBudget(category.budgetId)
-        budget.spentAmount -= transaction.amount
+
+        restoreTransactionAmounts(transaction, creditAccount, debitAccount, category, budget)
+
+        accountRepository.upsertAccount(creditAccount)
+        accountRepository.upsertAccount(debitAccount)
+        categoryRepository.upsertCategory(category)
         budgetRepository.upsertBudget(budget)
 
         // restore linked SMS back to uncategorized state

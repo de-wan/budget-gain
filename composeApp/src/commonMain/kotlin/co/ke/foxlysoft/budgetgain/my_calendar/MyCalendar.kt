@@ -22,19 +22,12 @@ fun MonthCalendar(
     onDayClick: (LocalDate) -> Unit,
     dayStatus: Map<LocalDate, DayStatus>
 ) {
-    val firstOfMonth = LocalDate(year, month, 1)
-    val daysInMonth = firstOfMonth.yearMonth.numberOfDays
-    val startDayOfWeek = firstOfMonth.dayOfWeek.isoDayNumber % 7
-
     Column(
         modifier = Modifier.padding(top = 16.dp)
     ) {
         WeekHeader()
         // 42 cells (6 weeks)
-        val cells = (0 until 42).map { i ->
-            val dayNum = i - startDayOfWeek + 1
-            if (dayNum in 1..daysInMonth) LocalDate(year, month, dayNum) else null
-        }
+        val cells = monthCalendarCells(year, month)
         cells.chunked(7).forEach { week ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 week.forEach { date ->
@@ -42,6 +35,17 @@ fun MonthCalendar(
                 }
             }
         }
+    }
+}
+
+internal fun monthCalendarCells(year: Int, month: Int): List<LocalDate?> {
+    val firstOfMonth = LocalDate(year, month, 1)
+    val daysInMonth = firstOfMonth.yearMonth.numberOfDays
+    val startDayOfWeek = firstOfMonth.dayOfWeek.isoDayNumber % 7
+
+    return (0 until 42).map { index ->
+        val day = index - startDayOfWeek + 1
+        if (day in 1..daysInMonth) LocalDate(year, month, day) else null
     }
 }
 

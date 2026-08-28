@@ -33,9 +33,9 @@ class SpendScreenViewModel(
     private val budgetRepository: BudgetRepository,
     private val transactionRepository: TransactionRepository
 ): ViewModel() {
-    private val selectedCategoryId = MutableStateFlow<Long?>(categoryId)
+    private val categorySelection = CategorySelectionState(categoryId)
 
-    val currentCategory: StateFlow<CategoryEntity?> = selectedCategoryId
+    val currentCategory: StateFlow<CategoryEntity?> = categorySelection.categoryId
         .flatMapLatest { selectedId ->
             if (selectedId == null) {
                 flowOf(null)
@@ -70,11 +70,11 @@ class SpendScreenViewModel(
     }
 
     fun selectCategory(category: CategoryEntity) {
-        selectedCategoryId.value = category.id
+        categorySelection.select(category.id)
     }
 
     fun clearSelectedCategory() {
-        selectedCategoryId.value = null
+        categorySelection.clear()
     }
 
     fun updateCategorySearchQuery(query: String) {

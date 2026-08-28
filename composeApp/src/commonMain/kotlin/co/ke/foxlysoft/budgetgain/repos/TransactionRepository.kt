@@ -22,7 +22,7 @@ class TransactionRepository(db: AppDatabase) {
 
     suspend fun getPagingMerchantTransactions(budgetId: Long, accountId: Long, limit: Int, offset: Int) = transactionDao.getPagingMerchantTransactions(budgetId, accountId, limit, offset)
 
-    fun existsByRef(ref: String) = transactionDao.existsByRef(ref)
+    suspend fun existsByRef(ref: String) = transactionDao.existsByRef(ref)
 
     suspend fun getByRef(ref: String) = transactionDao.getByRef(ref)
 

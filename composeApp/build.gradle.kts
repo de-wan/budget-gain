@@ -58,6 +58,8 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.composeVM)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.serialization.core)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.kermit)
 
             implementation(libs.material.icons.extended)
@@ -67,6 +69,12 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        androidInstrumentedTest.dependencies {
+            implementation(libs.androidx.test.core)
+            implementation(libs.androidx.test.junit)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.room.testing)
         }
     }
 }
@@ -81,6 +89,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 3
         versionName = "1.02"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     packaging {
         resources {
@@ -109,4 +118,3 @@ dependencies {
 room {
     schemaDirectory("$projectDir/schemas")
 }
-
