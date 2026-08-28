@@ -1,6 +1,5 @@
 package co.ke.foxlysoft.budgetgain.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,14 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CalendarViewDay
-import androidx.compose.material.icons.filled.CalendarViewWeek
 import androidx.compose.material.icons.outlined.CalendarViewWeek
-import androidx.compose.material.icons.outlined.ViewWeek
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -36,7 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun DailyUsageScreen(
+fun CreateBudgetScreen(
     dailyUsageScreenViewModel: DailyUsageScreenViewModel = koinViewModel(),
 ) {
     val dayStatus = mutableMapOf<LocalDate, DayStatus>()
@@ -51,7 +46,7 @@ data class RemainingBudget (
 
 @Composable
 fun DailyUsageScreenContent(dayStatus: Map<LocalDate, DayStatus>) {
-    val remainingBudges = listOf(
+    val remainingBudgets = listOf(
         RemainingBudget("Daily", 1000),
         RemainingBudget("Weekly", 1000),
         RemainingBudget("Monthly", 1000, 100.0)
@@ -67,7 +62,7 @@ fun DailyUsageScreenContent(dayStatus: Map<LocalDate, DayStatus>) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ){
-            for (remainingBudget in remainingBudges) {
+            for (remainingBudget in remainingBudgets) {
                 Card(
                     modifier = Modifier.weight(1f).padding(8.dp, 2.dp)
                 ){
