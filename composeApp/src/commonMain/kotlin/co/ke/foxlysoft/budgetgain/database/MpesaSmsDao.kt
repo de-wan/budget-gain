@@ -25,6 +25,9 @@ interface MpesaSmsDao {
     @Query("SELECT * FROM MpesaSmsEntity WHERE id IN (:ids)")
     suspend fun getMpesaSmsById(ids: List<Long>): List<MpesaSmsEntity>
 
+    @Query("SELECT * FROM MpesaSmsEntity WHERE id = :id AND transactionId = 0 LIMIT 1")
+    suspend fun getUncategorizedMpesaSmsById(id: Long): MpesaSmsEntity?
+
     @Query("UPDATE MpesaSmsEntity SET transactionId = 0 WHERE transactionId = :transactionId")
     suspend fun restoreUncategorizedSms(transactionId: Long)
 

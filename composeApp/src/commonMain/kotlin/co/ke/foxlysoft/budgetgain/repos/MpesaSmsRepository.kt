@@ -2,8 +2,10 @@ package co.ke.foxlysoft.budgetgain.repos
 
 import co.ke.foxlysoft.budgetgain.database.AppDatabase
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
 
-class MpesaSmsRepository(db: AppDatabase) {
+class MpesaSmsRepository(private val db: AppDatabase) {
     private val mpesaSmsDao = db.mpesaSmsDao()
 
     suspend fun upsertMpesaSms(mpesaSmsEntity: MpesaSmsEntity) {
@@ -27,6 +29,16 @@ class MpesaSmsRepository(db: AppDatabase) {
 
     suspend fun getMpesaSmsById(ids: List<Long>): List<MpesaSmsEntity> {
         return mpesaSmsDao.getMpesaSmsById(ids)
+    }
+
+    suspend fun getUncategorizedMpesaSmsById(id: Long): MpesaSmsEntity? {
+        return mpesaSmsDao.getUncategorizedMpesaSmsById(id)
+    }
+
+    suspend fun <T> withWriteTransaction(block: suspend () -> T): T {
+        return db.useWriterConnection { transactor ->
+            transactor.immediateTransaction { block() }
+        }
     }
 
     suspend fun restoreUncategorizedSms(transactionId: Long) {

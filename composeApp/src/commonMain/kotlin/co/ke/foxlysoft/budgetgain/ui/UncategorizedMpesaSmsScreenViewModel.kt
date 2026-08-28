@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Transaction
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.AccountType
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
@@ -143,7 +142,15 @@ class UncategorizedMpesaSmsScreenViewModel(
         }
     }
 
-    private suspend fun categorizeSingleSms(categoryName: String, smsToCategorize: MpesaSmsEntity) {
+    private suspend fun categorizeSingleSms(categoryName: String, smsId: Long) {
+        val smsToCategorize = mpesaSmsRepository.getUncategorizedMpesaSmsById(smsId) ?: return
+
+        transactionRepository.getByRef(smsToCategorize.ref)?.let { existingTransaction ->
+            smsToCategorize.transactionId = existingTransaction.id
+            mpesaSmsRepository.updateMpesaSms(smsToCategorize)
+            return
+        }
+
         val budget = budgetRepository.getCurrentBudget()
 
         // check if sms timestamp is within budget time range
@@ -231,33 +238,23 @@ class UncategorizedMpesaSmsScreenViewModel(
         mpesaSmsRepository.ignoreMpesaSms(smsToIgnore.id)
     }
 
-    @Transaction
     suspend fun categorizeSms(categoryName: String, smsToCategorize: MpesaSmsEntity, shouldCategorizeSimilarByMerchant: Boolean) {
         try {
-            categorizeSingleSms(categoryName, smsToCategorize)
-
-            if (shouldCategorizeSimilarByMerchant) {
-                val budgetDates = getBudgetDates()
-                val from = budgetDates.first
-                val to = budgetDates.second
-
-                // retrieve all sms with similar identifier
-                val primaryIdentifier = smsToCategorize.subjectPrimaryIdentifier
-                val primaryIdentifierType = smsToCategorize.subjectPrimaryIdentifierType
-                val secondaryIdentifier = smsToCategorize.subjectSecondaryIdentifier
-                val secondaryIdentifierType = smsToCategorize.subjectSecondaryIdentifierType
-
-                val smsList = mpesaSmsRepository.getMpesaSmsByIdentifier(
-                    primaryIdentifier,
-                    primaryIdentifierType,
-                    secondaryIdentifier,
-                    secondaryIdentifierType,
-                    from,
-                    to
-                )
-                smsList.forEach {
-                    categorizeSingleSms(categoryName, it)
+            mpesaSmsRepository.withWriteTransaction {
+                val smsIds = linkedSetOf(smsToCategorize.id)
+                if (shouldCategorizeSimilarByMerchant) {
+                    val (from, to) = getBudgetDates()
+                    smsIds += mpesaSmsRepository.getMpesaSmsByIdentifier(
+                        smsToCategorize.subjectPrimaryIdentifier,
+                        smsToCategorize.subjectPrimaryIdentifierType,
+                        smsToCategorize.subjectSecondaryIdentifier,
+                        smsToCategorize.subjectSecondaryIdentifierType,
+                        from,
+                        to
+                    ).map { it.id }
                 }
+
+                smsIds.forEach { categorizeSingleSms(categoryName, it) }
             }
         } catch (e: Exception) {
             Logger.e("Error categorizing mpesa sms", e)
@@ -265,42 +262,29 @@ class UncategorizedMpesaSmsScreenViewModel(
         }
     }
 
-    @Transaction
     suspend fun categorizeBulkSms(categoryName: String, selectedSmsIds: Set<Any>, shouldCategorizeSimilarByMerchant: Boolean) {
         try {
-            // Convert IDs to Long for database query
-            val smsList = selectedSmsIds.mapNotNull { it as? Long }
-
-            // Get all SMS entities from the list
-            val allSms = mpesaSmsRepository.getMpesaSmsById(smsList)
-
-            // Categorize each SMS
-            allSms.forEach { sms ->
-                categorizeSingleSms(categoryName, sms)
+            mpesaSmsRepository.withWriteTransaction {
+                val selectedIds = selectedSmsIds.mapNotNull { it as? Long }.toSet()
+                val selectedSms = mpesaSmsRepository.getMpesaSmsById(selectedIds.toList())
+                    .filter { it.transactionId == 0L }
+                val smsIds = selectedSms.mapTo(linkedSetOf()) { it.id }
 
                 if (shouldCategorizeSimilarByMerchant) {
-                    val budgetDates = getBudgetDates()
-                    val from = budgetDates.first
-                    val to = budgetDates.second
-
-                    // For each SMS, categorize similar merchants
-                    val primaryIdentifier = sms.subjectPrimaryIdentifier
-                    val primaryIdentifierType = sms.subjectPrimaryIdentifierType
-                    val secondaryIdentifier = sms.subjectSecondaryIdentifier
-                    val secondaryIdentifierType = sms.subjectSecondaryIdentifierType
-
-                    val similarSmsList = mpesaSmsRepository.getMpesaSmsByIdentifier(
-                        primaryIdentifier,
-                        primaryIdentifierType,
-                        secondaryIdentifier,
-                        secondaryIdentifierType,
-                        from,
-                        to
-                    )
-                    similarSmsList.forEach { similarSms ->
-                        categorizeSingleSms(categoryName, similarSms)
+                    val (from, to) = getBudgetDates()
+                    selectedSms.forEach { sms ->
+                        smsIds += mpesaSmsRepository.getMpesaSmsByIdentifier(
+                            sms.subjectPrimaryIdentifier,
+                            sms.subjectPrimaryIdentifierType,
+                            sms.subjectSecondaryIdentifier,
+                            sms.subjectSecondaryIdentifierType,
+                            from,
+                            to
+                        ).map { it.id }
                     }
                 }
+
+                smsIds.forEach { categorizeSingleSms(categoryName, it) }
             }
         } catch (e: Exception) {
             Logger.e("Error bulk categorizing mpesa sms", e)

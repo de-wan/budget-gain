@@ -24,6 +24,8 @@ class TransactionRepository(db: AppDatabase) {
 
     fun existsByRef(ref: String) = transactionDao.existsByRef(ref)
 
+    suspend fun getByRef(ref: String) = transactionDao.getByRef(ref)
+
     private data class MerchantInfo(
         var spentAmount: Long,
         var transactionCount: Int
