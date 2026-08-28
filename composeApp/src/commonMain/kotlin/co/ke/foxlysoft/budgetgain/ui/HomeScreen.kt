@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
@@ -258,6 +259,13 @@ fun HomeContent(
                             modifier = Modifier.height(30.dp)
                         )
                         Spacer(modifier = Modifier.weight(1f))
+                        TextButton(onClick = { onNavigate(Screens.DailyUsage.route) }) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = "Daily usage"
+                            )
+                            Text("Daily")
+                        }
                         Text(text = "Bal: ")
                         Text(centsToString(currentBudget.budgetedAmount - currentBudget.spentAmount),
                             style = MaterialTheme.typography.titleMedium

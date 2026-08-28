@@ -36,11 +36,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun CreateBudgetScreen(
+fun DailyUsageScreen(
     dailyUsageScreenViewModel: DailyUsageScreenViewModel = koinViewModel(),
 ) {
     val dayStatus = mutableMapOf<LocalDate, DayStatus>()
-    CreateBudgetScreenContent(dayStatus)
+    DailyUsageScreenContent(dayStatus)
 }
 
 data class RemainingBudget (
@@ -50,7 +50,7 @@ data class RemainingBudget (
 )
 
 @Composable
-fun CreateBudgetScreenContent(dayStatus: Map<LocalDate, DayStatus>) {
+fun DailyUsageScreenContent(dayStatus: Map<LocalDate, DayStatus>) {
     val remainingBudges = listOf(
         RemainingBudget("Daily", 1000),
         RemainingBudget("Weekly", 1000),
@@ -124,11 +124,11 @@ fun CreateBudgetScreenContent(dayStatus: Map<LocalDate, DayStatus>) {
 
 @Preview
 @Composable
-fun CreateBudgetScreenPreview() {
+fun DailyUsageScreenPreview() {
     val dayStatus = mutableMapOf<LocalDate, DayStatus>()
     BudgetGainTheme {
         Surface {
-            CreateBudgetScreenContent(dayStatus)
+            DailyUsageScreenContent(dayStatus)
         }
     }
 }
