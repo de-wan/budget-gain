@@ -49,8 +49,8 @@ object MaterialCategoryIconRegistry {
         "directions_bus" -> Icons.Default.DirectionsBus
         "local_taxi" -> Icons.Default.LocalTaxi
         "local_gas_station" -> Icons.Default.LocalGasStation
-        "rickshaw" -> Icons.Default.Rickshaw
-        "propane_tank" -> Icons.Default.PropaneTank
+        "rickshaw" -> Icons.Default.TwoWheeler
+        "propane_tank" -> Icons.Default.LocalGasStation
         else -> Icons.Default.Category
     }
 }
