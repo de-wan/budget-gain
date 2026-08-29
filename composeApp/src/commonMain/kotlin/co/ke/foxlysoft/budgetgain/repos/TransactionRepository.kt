@@ -88,4 +88,7 @@ class TransactionRepository(db: AppDatabase) {
             .toList()
             .sortedBy { it.first }
     }
+
+    suspend fun getBudgetTransactions(budgetId: Long): List<TransactionEntity> =
+        transactionDao.getBudgetTransactions(budgetId).first()
 }

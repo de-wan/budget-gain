@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
@@ -20,18 +21,25 @@ fun MonthCalendar(
     year: Int,
     month: Int,
     onDayClick: (LocalDate) -> Unit,
-    dayStatus: Map<LocalDate, DayStatus>
+    statusByDate: Map<LocalDate, DayStatus>,
+    selectedDate: LocalDate? = null
 ) {
+    val calendarDates = remember(year, month) { monthCalendarCells(year, month) }
+
     Column(
         modifier = Modifier.padding(top = 16.dp)
     ) {
         WeekHeader()
         // 42 cells (6 weeks)
-        val cells = monthCalendarCells(year, month)
-        cells.chunked(7).forEach { week ->
+        calendarDates.chunked(7).forEach { weekDates ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                week.forEach { date ->
-                    DayCell(date, dayStatus[date], onDayClick)
+                weekDates.forEach { date ->
+                    DayCell(
+                        date = date,
+                        dayStatus = date?.let(statusByDate::get),
+                        isSelected = date != null && date == selectedDate,
+                        onDayClick = onDayClick
+                    )
                 }
             }
         }
@@ -52,17 +60,18 @@ internal fun monthCalendarCells(year: Int, month: Int): List<LocalDate?> {
 @Preview
 @Composable
 fun MonthCalendarPreview (){
-    var dayStatus = mutableMapOf<LocalDate, DayStatus>()
-    dayStatus[LocalDate(2026, 2, 1)] = DayStatus(isMovedForward = true)
-    dayStatus[LocalDate(2026, 2, 2)] = DayStatus(isMovedForward = true, isUsed = true)
-    dayStatus[LocalDate(2026, 2, 3)] = DayStatus(isMovedForward = true, isUsed = true, isOverUsed = true)
+    val statusByDate = mapOf(
+        LocalDate(2026, 2, 1) to DayStatus(isMovedForward = true),
+        LocalDate(2026, 2, 2) to DayStatus(isMovedForward = true, isUsed = true),
+        LocalDate(2026, 2, 3) to DayStatus(isMovedForward = true, isUsed = true, isOverUsed = true)
+    )
     BudgetGainTheme {
         Surface {
             MonthCalendar(
                 year = 2026,
                 month = 1,
                 onDayClick = {},
-                dayStatus = dayStatus
+                statusByDate = statusByDate
             )
         }
     }
@@ -71,17 +80,18 @@ fun MonthCalendarPreview (){
 @Preview
 @Composable
 fun DarkMonthCalendarPreview (){
-    var dayStatus = mutableMapOf<LocalDate, DayStatus>()
-    dayStatus[LocalDate(2026, 2, 1)] = DayStatus(isMovedForward = true)
-    dayStatus[LocalDate(2026, 2, 2)] = DayStatus(isUsed = true)
-    dayStatus[LocalDate(2026, 2, 3)] = DayStatus(isOverUsed = true)
+    val statusByDate = mapOf(
+        LocalDate(2026, 2, 1) to DayStatus(isMovedForward = true),
+        LocalDate(2026, 2, 2) to DayStatus(isUsed = true),
+        LocalDate(2026, 2, 3) to DayStatus(isOverUsed = true)
+    )
     BudgetGainTheme(darkTheme = true) {
         Surface {
             MonthCalendar(
                 year = 2026,
                 month = 2,
                 onDayClick = {},
-                dayStatus = dayStatus
+                statusByDate = statusByDate
             )
         }
     }

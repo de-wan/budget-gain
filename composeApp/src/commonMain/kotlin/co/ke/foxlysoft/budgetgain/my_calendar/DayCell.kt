@@ -1,6 +1,7 @@
 package co.ke.foxlysoft.budgetgain.my_calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,18 +19,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
 import kotlin.time.Clock
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.datetime.LocalDate
+
+private val CarriedForwardIndicatorColor = Color(0xFF00C853)
+private val UsedIndicatorColor = Color(0xFF2979FF)
+private val OverusedIndicatorColor = Color(0xFFFF1744)
 
 @Composable
 fun DayCell(
     date: LocalDate?,
     dayStatus: DayStatus?,
+    isSelected: Boolean = false,
     onDayClick: (LocalDate) -> Unit
 ) {
     val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
@@ -37,6 +44,15 @@ fun DayCell(
     Box(
         modifier = Modifier
             .size(48.dp)
+            .then(
+                if (isSelected) {
+                    Modifier
+                        .clip(CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                } else {
+                    Modifier
+                }
+            )
             .clickable(enabled = date != null) { date?.let(onDayClick) }
     ) {
         date?.let {
@@ -58,15 +74,15 @@ fun DayCell(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = it.dayOfMonth.toString(),
+                        text = it.day.toString(),
                         color = if (isToday) MaterialTheme.colorScheme.onPrimary else Color.Unspecified
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Row {
-                    if (dayStatus?.isMovedForward == true) Dot(Color.Green)
-                    if (dayStatus?.isUsed == true) Dot(Color.Blue)
-                    if (dayStatus?.isOverUsed == true) Dot(Color.Red)
+                    if (dayStatus?.isMovedForward == true) Dot(CarriedForwardIndicatorColor)
+                    if (dayStatus?.isUsed == true) Dot(UsedIndicatorColor)
+                    if (dayStatus?.isOverUsed == true) Dot(OverusedIndicatorColor)
                 }
             }
         }
@@ -75,10 +91,17 @@ fun DayCell(
 
 @Composable
 fun Dot(color: Color) {
+    val outlineColor = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        Color.Black
+    } else {
+        Color.White
+    }
+
     Box(
         Modifier
-            .padding(2.dp)
-            .size(6.dp)
+            .padding(horizontal = 1.dp)
+            .size(8.dp)
+            .border(1.dp, outlineColor, CircleShape)
             .background(color, shape = CircleShape)
     )
 }
@@ -132,6 +155,43 @@ fun DarkDayCellPreview() {
                     isOverUsed = true
                 ),
                 onDayClick = {}
+            )
+        }
+    }
+}
+
+@Composable
+@Preview
+fun DarkTodayDayCellPreview() {
+    BudgetGainTheme(darkTheme = true) {
+        Surface {
+            DayCell(
+                date = Clock.System.todayIn(TimeZone.currentSystemDefault()),
+                dayStatus = DayStatus(
+                    isMovedForward = true,
+                    isUsed = true,
+                    isOverUsed = true
+                ),
+                onDayClick = {}
+            )
+        }
+    }
+}
+
+@Composable
+@Preview
+fun SelectedDayCellPreview() {
+    BudgetGainTheme {
+        Surface {
+            DayCell(
+                date = Clock.System.todayIn(TimeZone.currentSystemDefault()),
+                dayStatus = DayStatus(
+                    isMovedForward = true,
+                    isUsed = true,
+                    isOverUsed = true
+                ),
+                onDayClick = {},
+                isSelected = true
             )
         }
     }

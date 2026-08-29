@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +52,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
+import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.ui.components.BGainPaginationController
@@ -57,10 +61,6 @@ import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.ke.foxlysoft.budgetgain.utils.dateMillisToString
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -78,42 +78,9 @@ fun UncategorizedMpesaSmsScreen(
     val smsToCategorize = remember { mutableStateOf<MpesaSmsEntity?>(null) }
     val selectedSmsIds = remember { mutableStateOf<Set<Long>>(emptySet()) }
     var isMultiSelectMode by remember { mutableStateOf(false) }
-    var categoryName by remember { mutableStateOf("") }
-    var categoryNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false))}
-    var categoryNameAutoCompleteExpanded by remember { mutableStateOf(false) }
-    var shouldCategorizeSimilarByMerchant by remember { mutableStateOf(true)}
-    var submitAttempted by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
 
     val search by uncategorizedMpesaSmsScreenViewModel.search.collectAsStateWithLifecycle()
-
-    fun clearErrorStatus() {
-        categoryNameErrorStatus = ErrorStatus(false)
-    }
-
-    fun isCategorizeFormValid(): Boolean {
-        var isValid = true
-        if (categoryName.isEmpty()) {
-            categoryNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Category Name is required")
-            isValid = false
-        } else {
-            // check if category name in selectable category names
-            var isFound = false
-            for (c in selectableCategories) {
-                if (c.name == categoryName) {
-                    isFound = true
-                    break
-                }
-            }
-            if (!isFound) {
-                categoryNameErrorStatus = ErrorStatus(isError = true, errorMsg = "Please select category from list")
-                isValid = false
-            }
-        }
-
-        return isValid
-    }
 
     val paginationController = remember { BGainPaginationController() }
 
@@ -156,165 +123,186 @@ fun UncategorizedMpesaSmsScreen(
         onOpenSnackbar = onOpenSnackbar
     )
 
-    LaunchedEffect(showBottomSheet) {
-        if (showBottomSheet) {
-            uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(categoryName)
-        }
-    }
-
     if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                showBottomSheet = false
+        val isBulkMode = isMultiSelectMode && selectedSmsIds.value.isNotEmpty()
+        val merchantLabel = if (isBulkMode) {
+            "${selectedSmsIds.value.size} selected items"
+        } else {
+            smsToCategorize.value?.let { sms ->
+                sms.subjectSecondaryIdentifier.ifBlank { sms.subjectPrimaryIdentifier }
+            }.orEmpty()
+        }
+        CategorizationBottomSheet(
+            itemCount = if (isBulkMode) selectedSmsIds.value.size else 1,
+            merchantLabel = merchantLabel,
+            selectableCategories = selectableCategories,
+            onCategorySearch = uncategorizedMpesaSmsScreenViewModel::updateCategorySearchQuery,
+            onDismiss = { showBottomSheet = false },
+            onSubmit = { selectedCategory, categorizeSimilar ->
+                if (isBulkMode) {
+                    uncategorizedMpesaSmsScreenViewModel.categorizeBulkSms(
+                        selectedCategory,
+                        selectedSmsIds.value,
+                        categorizeSimilar
+                    )
+                } else {
+                    uncategorizedMpesaSmsScreenViewModel.categorizeSms(
+                        selectedCategory,
+                        smsToCategorize.value!!,
+                        categorizeSimilar
+                    )
+                }
             },
-            sheetState = sheetState
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-            ) {
-                val isBulkMode = isMultiSelectMode && selectedSmsIds.value.isNotEmpty()
-                Text(
-                    text = if (isBulkMode) "Categorize ${selectedSmsIds.value.size} SMS" else "Categorize SMS",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                BGainOutlineField(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    labelStr = "Category",
-                    Value = categoryName,
-                    errorStatus = categoryNameErrorStatus,
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(categoryName)
-                            categoryNameAutoCompleteExpanded = !categoryNameAutoCompleteExpanded
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Show categories"
-                            )
-                        }
-                    },
-                    onValueChange = {
-                        println("Category name changed to $it")
-                        uncategorizedMpesaSmsScreenViewModel.updateCategorySearchQuery(it)
-                        categoryNameAutoCompleteExpanded = true
+            onSuccess = {
+                paginationController.refreshAllPages()
+                onOpenSnackbar("SMS successfully categorized")
+                showBottomSheet = false
+                smsToCategorize.value = null
+                selectedSmsIds.value = emptySet()
+                isMultiSelectMode = false
+            },
+            onError = { message -> onOpenSnackbar("Error categorizing SMS: $message") }
+        )
+    }
+}
 
-                        categoryName = it
-                    },
-                    validator = {
-                        // TODO: validate if in list
-                        categoryNameErrorStatus = ErrorStatus(isError = false)
-                    },
-                    submitAttempted = submitAttempted
-                )
-                // Dropdown menu
-                Box {
-                    if (categoryNameAutoCompleteExpanded && selectableCategories.isNotEmpty()) {
-                        Popup(
-                            onDismissRequest = { categoryNameAutoCompleteExpanded = false },
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CategorizationBottomSheet(
+    itemCount: Int,
+    merchantLabel: String,
+    selectableCategories: List<CategoryEntity>,
+    onCategorySearch: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSubmit: suspend (categoryName: String, categorizeSimilar: Boolean) -> Unit,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var categoryName by remember { mutableStateOf("") }
+    var categoryError by remember { mutableStateOf(ErrorStatus(false)) }
+    var isCategoryMenuExpanded by remember { mutableStateOf(false) }
+    var categorizeSimilar by remember { mutableStateOf(true) }
+    var isSubmitting by remember { mutableStateOf(false) }
+    var submissionError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) { onCategorySearch("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = if (itemCount > 1) "Categorize $itemCount transactions" else "Categorize transaction",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            BGainOutlineField(
+                modifier = Modifier.fillMaxWidth(),
+                labelStr = "Category",
+                Value = categoryName,
+                errorStatus = categoryError,
+                trailingIcon = {
+                    IconButton(onClick = {
+                        onCategorySearch(categoryName)
+                        isCategoryMenuExpanded = !isCategoryMenuExpanded
+                    }) {
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = "Show categories")
+                    }
+                },
+                onValueChange = { value ->
+                    categoryName = value
+                    categoryError = ErrorStatus(false)
+                    onCategorySearch(value)
+                    isCategoryMenuExpanded = true
+                },
+                validator = {}
+            )
+            Box {
+                if (isCategoryMenuExpanded && selectableCategories.isNotEmpty()) {
+                    Popup(onDismissRequest = { isCategoryMenuExpanded = false }) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 240.dp)
+                                .padding(horizontal = 32.dp)
+                                .zIndex(1f)
                         ) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 240.dp)
-                                    .padding(horizontal = 32.dp)
-                                    .zIndex(1f),
-                            ) {
-                                LazyColumn {
-                                    items(items = selectableCategories) { category ->
-                                        TextButton(
-                                            modifier = Modifier
-                                                .fillMaxWidth(),
-                                            onClick = {
-                                                categoryName = category.name
-                                                categoryNameAutoCompleteExpanded = false
-                                            },
-                                        ){
-                                            Text(text = category.name)
+                            LazyColumn {
+                                items(selectableCategories) { category ->
+                                    TextButton(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = {
+                                            categoryName = category.name
+                                            categoryError = ErrorStatus(false)
+                                            isCategoryMenuExpanded = false
                                         }
-                                    }
-
+                                    ) { Text(category.name) }
                                 }
                             }
                         }
                     }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-
-                ){
-                    val isBulkMode = isMultiSelectMode && selectedSmsIds.value.isNotEmpty()
-                    val dispName = if (isBulkMode) {
-                        "${selectedSmsIds.value.size} items"
-                    } else {
-                        val secondary = smsToCategorize.value?.subjectSecondaryIdentifier ?: ""
-                        if (secondary.isEmpty()) {
-                            smsToCategorize.value?.subjectPrimaryIdentifier ?: ""
-                        } else {
-                            secondary
-                        }
-                    }
-
-                    Text(text = "Categorize all transactions by $dispName", modifier = Modifier.weight(5f))
-                    Checkbox(checked = shouldCategorizeSimilarByMerchant,
-                        modifier = Modifier.weight(1f),
-                        onCheckedChange = {
-                        shouldCategorizeSimilarByMerchant = !shouldCategorizeSimilarByMerchant
-                    })
-                }
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        submitAttempted = true
-                        clearErrorStatus()
-
-                        if (!isCategorizeFormValid()) {
-                            return@Button
-                        }
-                        coroutineScope.launch(Dispatchers.IO) {
-                            try {
-                                val isBulkMode = isMultiSelectMode && selectedSmsIds.value.isNotEmpty()
-
-                                if (isBulkMode) {
-                                    uncategorizedMpesaSmsScreenViewModel.categorizeBulkSms(
-                                        categoryName,
-                                        selectedSmsIds.value,
-                                        shouldCategorizeSimilarByMerchant
-                                    )
-                                } else {
-                                    uncategorizedMpesaSmsScreenViewModel.categorizeSms(
-                                        categoryName,
-                                        smsToCategorize.value!!,
-                                        shouldCategorizeSimilarByMerchant
-                                    )
-                                }
-
-                                paginationController.refreshAllPages()
-                                onOpenSnackbar("SMS successfully categorized")
-                                showBottomSheet = false
-
-                                // reset form
-                                smsToCategorize.value = null
-                                selectedSmsIds.value = emptySet()
-                                isMultiSelectMode = false
-                                categoryName = ""
-                                categoryNameErrorStatus = ErrorStatus(isError = false)
-                                categoryNameAutoCompleteExpanded = false
-                                shouldCategorizeSimilarByMerchant = true
-                                submitAttempted = false
-
-                            } catch (e: Exception) {
-                                onOpenSnackbar("Error categorizing sms: ${e.message}")
-                            }
-                        }
-                }){
-                    Text(text = "Categorize SMS")
                 }
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (itemCount > 1) {
+                        "Also categorize similar transactions for the selected merchants"
+                    } else {
+                        "Also categorize similar transactions by $merchantLabel"
+                    },
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Checkbox(
+                    checked = categorizeSimilar,
+                    onCheckedChange = { categorizeSimilar = it }
+                )
+            }
+            submissionError?.let { message ->
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSubmitting,
+                onClick = {
+                    if (selectableCategories.none { it.name == categoryName }) {
+                        categoryError = ErrorStatus(true, "Select a category from the list")
+                        return@Button
+                    }
+                    coroutineScope.launch {
+                        isSubmitting = true
+                        submissionError = null
+                        try {
+                            onSubmit(categoryName, categorizeSimilar)
+                            onSuccess()
+                        } catch (error: Exception) {
+                            val message = error.message ?: "Unable to categorize transactions"
+                            submissionError = message
+                            onError(message)
+                        } finally {
+                            isSubmitting = false
+                        }
+                    }
+                }
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(if (itemCount > 1) "Categorize $itemCount transactions" else "Categorize transaction")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -663,4 +651,3 @@ fun UncategorizedMpesaSmsContentMultiselectPreview() {
         }
     }
 }
-
