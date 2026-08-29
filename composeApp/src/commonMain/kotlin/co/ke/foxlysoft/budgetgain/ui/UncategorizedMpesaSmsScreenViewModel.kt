@@ -9,8 +9,10 @@ import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.AccountType
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.CommonCategoryCatalog
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.repos.AccountRepository
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
@@ -67,6 +69,9 @@ class UncategorizedMpesaSmsScreenViewModel(
     private val _selectableCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
     val selectableCategories: StateFlow<List<CategoryEntity>> = _selectableCategories
 
+    private val _selectableSubCategories = MutableStateFlow<List<SubCategoryEntity>>(emptyList())
+    val selectableSubCategories: StateFlow<List<SubCategoryEntity>> = _selectableSubCategories
+
     private val _search = MutableStateFlow("")
     val search: StateFlow<String> = _search.asStateFlow()
 
@@ -122,6 +127,26 @@ class UncategorizedMpesaSmsScreenViewModel(
     }
 
     private var _searchJob: Job? = null
+    private var subCategoryJob: Job? = null
+
+    fun loadSubCategories(categoryId: Long) {
+        subCategoryJob?.cancel()
+        subCategoryJob = viewModelScope.launch {
+            categoryRepository.getSubCategoriesFlow(categoryId).collectLatest {
+                _selectableSubCategories.value = it
+            }
+        }
+    }
+
+    suspend fun createCustomSubCategory(categoryId: Long, name: String): SubCategoryEntity {
+        val subCategory = SubCategoryEntity(
+            categoryId = categoryId,
+            catalogKey = CommonCategoryCatalog.normalizedKey(name),
+            name = name,
+        )
+        val id = categoryRepository.upsertSubCategory(subCategory)
+        return subCategory.copy(id = id)
+    }
     // Function to update the search query
     fun updateCategorySearchQuery(query: String) {
         _searchJob?.cancel()
@@ -142,7 +167,7 @@ class UncategorizedMpesaSmsScreenViewModel(
         }
     }
 
-    private suspend fun categorizeSingleSms(categoryName: String, smsId: Long) {
+    private suspend fun categorizeSingleSms(categoryName: String, smsId: Long, subCategoryId: Long? = null) {
         val smsToCategorize = mpesaSmsRepository.getUncategorizedMpesaSmsById(smsId) ?: return
 
         transactionRepository.getByRef(smsToCategorize.ref)?.let { existingTransaction ->
@@ -198,6 +223,7 @@ class UncategorizedMpesaSmsScreenViewModel(
             debitAccountId = budgetAccount.id,
             creditAccountId = merchantAccount!!.id,
             categoryId = category.id,
+            subCategoryId = subCategoryId,
             amount = smsToCategorize.amount,
             timestamp = transactionTimestamp,
         )
@@ -238,7 +264,12 @@ class UncategorizedMpesaSmsScreenViewModel(
         mpesaSmsRepository.ignoreMpesaSms(smsToIgnore.id)
     }
 
-    suspend fun categorizeSms(categoryName: String, smsToCategorize: MpesaSmsEntity, shouldCategorizeSimilarByMerchant: Boolean) {
+    suspend fun categorizeSms(
+        categoryName: String,
+        smsToCategorize: MpesaSmsEntity,
+        shouldCategorizeSimilarByMerchant: Boolean,
+        subCategoryId: Long? = null,
+    ) {
         try {
             mpesaSmsRepository.withWriteTransaction {
                 val smsIds = linkedSetOf(smsToCategorize.id)
@@ -254,7 +285,7 @@ class UncategorizedMpesaSmsScreenViewModel(
                     ).map { it.id }
                 }
 
-                smsIds.forEach { categorizeSingleSms(categoryName, it) }
+                smsIds.forEach { categorizeSingleSms(categoryName, it, subCategoryId) }
             }
         } catch (e: Exception) {
             Logger.e("Error categorizing mpesa sms", e)
@@ -262,7 +293,12 @@ class UncategorizedMpesaSmsScreenViewModel(
         }
     }
 
-    suspend fun categorizeBulkSms(categoryName: String, selectedSmsIds: Set<Any>, shouldCategorizeSimilarByMerchant: Boolean) {
+    suspend fun categorizeBulkSms(
+        categoryName: String,
+        selectedSmsIds: Set<Any>,
+        shouldCategorizeSimilarByMerchant: Boolean,
+        subCategoryId: Long? = null,
+    ) {
         try {
             mpesaSmsRepository.withWriteTransaction {
                 val selectedIds = selectedSmsIds.mapNotNull { it as? Long }.toSet()
@@ -285,7 +321,7 @@ class UncategorizedMpesaSmsScreenViewModel(
                 }
 
                 val smsIds = categorizationSmsIds(selectedSms, similarSms)
-                smsIds.forEach { categorizeSingleSms(categoryName, it) }
+                smsIds.forEach { categorizeSingleSms(categoryName, it, subCategoryId) }
             }
         } catch (e: Exception) {
             Logger.e("Error bulk categorizing mpesa sms", e)

@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -23,9 +26,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +38,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +59,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.ui.components.BGainPaginationController
@@ -75,6 +82,7 @@ fun UncategorizedMpesaSmsScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val selectableCategories by uncategorizedMpesaSmsScreenViewModel.selectableCategories.collectAsStateWithLifecycle()
+    val selectableSubCategories by uncategorizedMpesaSmsScreenViewModel.selectableSubCategories.collectAsStateWithLifecycle()
     val smsToCategorize = remember { mutableStateOf<MpesaSmsEntity?>(null) }
     val selectedSmsIds = remember { mutableStateOf<Set<Long>>(emptySet()) }
     var isMultiSelectMode by remember { mutableStateOf(false) }
@@ -136,20 +144,25 @@ fun UncategorizedMpesaSmsScreen(
             itemCount = if (isBulkMode) selectedSmsIds.value.size else 1,
             merchantLabel = merchantLabel,
             selectableCategories = selectableCategories,
+            selectableSubCategories = selectableSubCategories,
             onCategorySearch = uncategorizedMpesaSmsScreenViewModel::updateCategorySearchQuery,
+            onCategorySelected = uncategorizedMpesaSmsScreenViewModel::loadSubCategories,
+            onCreateCustomSubCategory = uncategorizedMpesaSmsScreenViewModel::createCustomSubCategory,
             onDismiss = { showBottomSheet = false },
-            onSubmit = { selectedCategory, categorizeSimilar ->
+            onSubmit = { selectedCategory, selectedSubCategory, categorizeSimilar ->
                 if (isBulkMode) {
                     uncategorizedMpesaSmsScreenViewModel.categorizeBulkSms(
-                        selectedCategory,
+                        selectedCategory.name,
                         selectedSmsIds.value,
-                        categorizeSimilar
+                        categorizeSimilar,
+                        selectedSubCategory?.id,
                     )
                 } else {
                     uncategorizedMpesaSmsScreenViewModel.categorizeSms(
-                        selectedCategory,
+                        selectedCategory.name,
                         smsToCategorize.value!!,
-                        categorizeSimilar
+                        categorizeSimilar,
+                        selectedSubCategory?.id,
                     )
                 }
             },
@@ -172,20 +185,26 @@ fun CategorizationBottomSheet(
     itemCount: Int,
     merchantLabel: String,
     selectableCategories: List<CategoryEntity>,
+    selectableSubCategories: List<SubCategoryEntity>,
     onCategorySearch: (String) -> Unit,
+    onCategorySelected: (Long) -> Unit,
+    onCreateCustomSubCategory: suspend (Long, String) -> SubCategoryEntity,
     onDismiss: () -> Unit,
-    onSubmit: suspend (categoryName: String, categorizeSimilar: Boolean) -> Unit,
+    onSubmit: suspend (category: CategoryEntity, subCategory: SubCategoryEntity?, categorizeSimilar: Boolean) -> Unit,
     onSuccess: () -> Unit,
     onError: (String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var categoryName by remember { mutableStateOf("") }
-    var categoryError by remember { mutableStateOf(ErrorStatus(false)) }
-    var isCategoryMenuExpanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    var selectedSubCategory by remember { mutableStateOf<SubCategoryEntity?>(null) }
+    var pickingSubCategory by remember { mutableStateOf(false) }
     var categorizeSimilar by remember { mutableStateOf(true) }
     var isSubmitting by remember { mutableStateOf(false) }
     var submissionError by remember { mutableStateOf<String?>(null) }
+    var customSubCategoryName by remember { mutableStateOf("") }
+    var isCreatingCustomSubCategory by remember { mutableStateOf(false) }
+    var showCustomSubCategoryDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { onCategorySearch("") }
 
@@ -196,52 +215,145 @@ fun CategorizationBottomSheet(
                 style = MaterialTheme.typography.headlineSmall
             )
             Spacer(modifier = Modifier.height(8.dp))
-            BGainOutlineField(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                labelStr = "Category",
-                Value = categoryName,
-                errorStatus = categoryError,
-                trailingIcon = {
-                    IconButton(onClick = {
-                        onCategorySearch(categoryName)
-                        isCategoryMenuExpanded = !isCategoryMenuExpanded
-                    }) {
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = "Show categories")
-                    }
-                },
-                onValueChange = { value ->
-                    categoryName = value
-                    categoryError = ErrorStatus(false)
-                    onCategorySearch(value)
-                    isCategoryMenuExpanded = true
-                },
-                validator = {}
-            )
-            Box {
-                if (isCategoryMenuExpanded && selectableCategories.isNotEmpty()) {
-                    Popup(onDismissRequest = { isCategoryMenuExpanded = false }) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 240.dp)
-                                .padding(horizontal = 32.dp)
-                                .zIndex(1f)
-                        ) {
-                            LazyColumn {
-                                items(selectableCategories) { category ->
-                                    TextButton(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        onClick = {
-                                            categoryName = category.name
-                                            categoryError = ErrorStatus(false)
-                                            isCategoryMenuExpanded = false
-                                        }
-                                    ) { Text(category.name) }
-                                }
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                FilterChip(
+                    selected = !pickingSubCategory,
+                    onClick = { pickingSubCategory = false },
+                    leadingIcon = selectedCategory?.let { category ->
+                        {
+                            Icon(
+                                imageVector = category.displayIcon(),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    label = { Text(selectedCategory?.name ?: "Category") },
+                )
+                Text("/", modifier = Modifier.padding(horizontal = 10.dp), style = MaterialTheme.typography.titleLarge)
+                FilterChip(
+                    selected = pickingSubCategory,
+                    enabled = selectedCategory != null,
+                    onClick = { if (selectedCategory != null) pickingSubCategory = true },
+                    leadingIcon = selectedSubCategory?.let { subCategory ->
+                        selectedCategory?.let { category ->
+                            {
+                                Icon(
+                                    imageVector = subCategory.displayIcon(category),
+                                    contentDescription = null,
+                                )
                             }
                         }
+                    },
+                    label = { Text(selectedSubCategory?.name ?: "Subcategory") },
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = if (pickingSubCategory) "Choose a subcategory" else "Choose a category",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            val pickerItems: List<Any> = if (pickingSubCategory) selectableSubCategories else selectableCategories
+            if (pickingSubCategory && pickerItems.isEmpty()) {
+                Text(
+                    "No subcategories available. You can categorize using ${selectedCategory?.name} only.",
+                    modifier = Modifier.padding(vertical = 24.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    gridItems(pickerItems, key = {
+                        when (it) {
+                            is CategoryEntity -> "category-${it.id}"
+                            is SubCategoryEntity -> "subcategory-${it.id}"
+                            else -> it.hashCode().toString()
+                        }
+                    }) { item ->
+                        val label = when (item) {
+                            is CategoryEntity -> item.name
+                            is SubCategoryEntity -> item.name
+                            else -> ""
+                        }
+                        val selected = when (item) {
+                            is CategoryEntity -> selectedCategory?.id == item.id
+                            is SubCategoryEntity -> selectedSubCategory?.id == item.id
+                            else -> false
+                        }
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                when (item) {
+                                    is CategoryEntity -> {
+                                        if (selectedCategory?.id != item.id) selectedSubCategory = null
+                                        selectedCategory = item
+                                        onCategorySelected(item.id)
+                                        pickingSubCategory = true
+                                    }
+                                    is SubCategoryEntity -> selectedSubCategory = item
+                                }
+                            },
+                            label = { Text(label) },
+                        )
                     }
                 }
+            }
+            if (pickingSubCategory && selectedCategory != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                FilterChip(
+                    selected = false,
+                    onClick = { showCustomSubCategoryDialog = true },
+                    label = { Text("Add subcategory") },
+                )
+            }
+            if (showCustomSubCategoryDialog && selectedCategory != null) {
+                AlertDialog(
+                    onDismissRequest = { showCustomSubCategoryDialog = false },
+                    title = { Text("Add subcategory") },
+                    text = {
+                        OutlinedTextField(
+                            value = customSubCategoryName,
+                            onValueChange = { customSubCategoryName = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Subcategory name") },
+                            singleLine = true,
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            enabled = customSubCategoryName.isNotBlank() && !isCreatingCustomSubCategory,
+                            onClick = {
+                                val category = selectedCategory ?: return@TextButton
+                                coroutineScope.launch {
+                                    isCreatingCustomSubCategory = true
+                                    try {
+                                        val created = onCreateCustomSubCategory(category.id, customSubCategoryName.trim())
+                                        selectedSubCategory = created
+                                        customSubCategoryName = ""
+                                        showCustomSubCategoryDialog = false
+                                    } finally {
+                                        isCreatingCustomSubCategory = false
+                                    }
+                                }
+                            }
+                        ) {
+                            Text(if (isCreatingCustomSubCategory) "Adding..." else "Add")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showCustomSubCategoryDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -273,15 +385,12 @@ fun CategorizationBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSubmitting,
                 onClick = {
-                    if (selectableCategories.none { it.name == categoryName }) {
-                        categoryError = ErrorStatus(true, "Select a category from the list")
-                        return@Button
-                    }
+                    val category = selectedCategory ?: return@Button
                     coroutineScope.launch {
                         isSubmitting = true
                         submissionError = null
                         try {
-                            onSubmit(categoryName, categorizeSimilar)
+                            onSubmit(category, selectedSubCategory, categorizeSimilar)
                             onSuccess()
                         } catch (error: Exception) {
                             val message = error.message ?: "Unable to categorize transactions"
@@ -307,6 +416,7 @@ fun CategorizationBottomSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UncategorizedMpesaSmsContent(
     onGetItems: suspend (Int, Int) -> List<MpesaSmsEntity>,
@@ -323,6 +433,9 @@ fun UncategorizedMpesaSmsContent(
     onCategorizeSelected: () -> Unit = {},
     onOpenSnackbar: (String) -> Unit = {}
 ) {
+    var pendingIgnoreSms by remember { mutableStateOf<MpesaSmsEntity?>(null) }
+    val ignoreSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     Column {
         Text(text = "Uncategorized MPESA sms", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(8.dp))
@@ -397,6 +510,7 @@ fun UncategorizedMpesaSmsContent(
                     onLongPress = { onEnterMultiSelectMode(sms.id) },
                     onToggleSelection = { onToggleSelection(sms.id) },
                     onIgnoreSms = onIgnoreSms,
+                    onRequestIgnore = { pendingIgnoreSms = it },
                     onCategorize = onCategorize
                 )
             },
@@ -405,6 +519,46 @@ fun UncategorizedMpesaSmsContent(
             },
             controller = paginationController,
         )
+
+        pendingIgnoreSms?.let { sms ->
+            ModalBottomSheet(
+                onDismissRequest = { pendingIgnoreSms = null },
+                sheetState = ignoreSheetState
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(
+                        text = "Ignore SMS?",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "This will remove SMS #${sms.ref} from the uncategorized list.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TextButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = { pendingIgnoreSms = null }
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onIgnoreSms(sms)
+                                pendingIgnoreSms = null
+                            }
+                        ) {
+                            Text("Ignore")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -416,6 +570,7 @@ fun SmsItem(
     onLongPress: () -> Unit = {},
     onToggleSelection: () -> Unit = {},
     onIgnoreSms: (MpesaSmsEntity) -> Unit = {},
+    onRequestIgnore: (MpesaSmsEntity) -> Unit = {},
     onCategorize: (MpesaSmsEntity) -> Unit = {}
 ) {
     // State to track the expanded state of the menu
@@ -506,7 +661,7 @@ fun SmsItem(
                                 Text("Categorize")
                             })
                         DropdownMenuItem(onClick = {
-                            onIgnoreSms(sms)
+                            onRequestIgnore(sms)
                             menuExpanded = false
                         },
                             text = {

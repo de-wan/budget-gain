@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Transaction
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
 import kotlinx.coroutines.Job
@@ -59,11 +60,28 @@ class CreateBudgetScreenViewModel(
                 categories.forEach {
                     val categoryEntity = CategoryEntity(
                         budgetId = budgetEntity.id,
+                        catalogKey = it.catalogKey,
                         name = it.name,
                         amount = it.amount,
                         spentAmount = 0L,
+                        trackMode = it.trackMode,
+                        lightColorArgb = it.lightColorArgb,
+                        darkColorArgb = it.darkColorArgb,
+                        iconKey = it.iconKey,
                     )
-                    categoryRepository.upsertCategory(categoryEntity)
+                    val newCategoryId = categoryRepository.upsertCategory(categoryEntity)
+                    categoryRepository.getSubCategories(it.id).forEach { child ->
+                        categoryRepository.upsertSubCategory(
+                            SubCategoryEntity(
+                                categoryId = newCategoryId,
+                                catalogKey = child.catalogKey,
+                                name = child.name,
+                                iconKey = child.iconKey,
+                                lightColorArgb = child.lightColorArgb,
+                                darkColorArgb = child.darkColorArgb,
+                            )
+                        )
+                    }
                 }
 
                 budgetRepository.upsertBudget(budgetEntity)

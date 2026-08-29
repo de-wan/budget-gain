@@ -2,6 +2,7 @@ package co.ke.foxlysoft.budgetgain.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -582,6 +584,17 @@ fun CategoryItem(category: CategoryEntity,
                     .padding(horizontal = 8.dp, vertical = 2.dp), // Adjust padding if needed
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Box(
+                    modifier = Modifier.padding(end = 8.dp)
+                        .background(category.displayColor(isSystemInDarkTheme()), shape = CircleShape),
+                ) {
+                    Icon(
+                        imageVector = category.displayIcon(),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(2.dp)
+                    )
+                }
                 Text(
                     text = category.name,
                     modifier = Modifier
@@ -593,7 +606,7 @@ fun CategoryItem(category: CategoryEntity,
                 )
                 Text (
                     text = centsToString(category.amount - category.spentAmount),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleSmall
                 )
                 IconButton(onClick = {
                     isShowingDetails = !isShowingDetails

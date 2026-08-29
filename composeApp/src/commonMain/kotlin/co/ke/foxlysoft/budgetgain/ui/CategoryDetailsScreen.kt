@@ -2,6 +2,8 @@ package co.ke.foxlysoft.budgetgain.ui
 
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,8 +19,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CalendarViewMonth
@@ -26,17 +26,14 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Shop
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.PrimaryTabRow
@@ -53,20 +50,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import co.ke.foxlysoft.budgetgain.repos.MerchantSummary
 import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
-import co.ke.foxlysoft.budgetgain.ui.Theme.Purple600
+import co.ke.foxlysoft.budgetgain.ui.displayColor
+import co.ke.foxlysoft.budgetgain.ui.displayIcon
 import co.ke.foxlysoft.budgetgain.ui.charts.MonthLineChart
 import co.ke.foxlysoft.budgetgain.ui.components.BGPaginatedList
 import co.ke.foxlysoft.budgetgain.ui.components.BGainPaginationController
@@ -104,6 +102,7 @@ fun CategoryDetailsScreen(
         merchantsSummary = merchantSummary,
         dailyData = dailyData,
         onGetMerchantAccount = categoryDetailsScreenViewModel::getMerchantAccount,
+        onGetSubCategory = categoryDetailsScreenViewModel::getSubCategory,
         onDeleteTransaction = categoryDetailsScreenViewModel::deleteTransaction,
         onGetCategoryTransactions = categoryDetailsScreenViewModel::getCategoryTransactions,
         onOpenConfirmSnackbar
@@ -117,6 +116,7 @@ fun CategoryDetailsContent(
     merchantsSummary: List<MerchantSummary> = emptyList(),
     dailyData: List<Pair<Int, Long>> = emptyList(),
     onGetMerchantAccount: suspend (TransactionEntity) -> AccountEntity,
+    onGetSubCategory: suspend (Long) -> SubCategoryEntity?,
     onDeleteTransaction: suspend (TransactionEntity) -> Unit,
     onGetCategoryTransactions: suspend (Int, Int) -> List<TransactionEntity>,
     onOpenConfirmSnackbar: (msg: String, actionLabel: String, onConfirm: () -> Unit) -> Unit
@@ -136,7 +136,22 @@ fun CategoryDetailsContent(
         modifier = Modifier.fillMaxSize()
             .padding(16.dp)
     ){
-        Text(text= category.name, style = MaterialTheme.typography.headlineLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 10.dp)
+                    .background(category.displayColor(isSystemInDarkTheme()), shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = category.displayIcon(),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(2.dp)
+                )
+            }
+            Text(text = category.name, style = MaterialTheme.typography.headlineLarge)
+        }
         Text(text = "Remaining: Ksh${centsToString(category.amount - category.spentAmount)}")
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -169,33 +184,43 @@ fun CategoryDetailsContent(
         ) {
             if (selectedTabIndex.value == 0) {
                 val paginationController = remember { BGainPaginationController() }
-                BGPaginatedList(
-                    onGetKey = { it.id },
-                    onGetItem = {
-                        TransactionItem(
-                            onGetMerchantAccount = onGetMerchantAccount,
-                            it,
-                            onDelete = {
-                                // TODO: add a confirmation dialog
-                                onOpenConfirmSnackbar(
-                                    "Are you sure you want to delete?",
-                                    "Confirm",
-                                    {
-                                        // Perform the delete action
-                                        coroutineScope.launch {
-                                            onDeleteTransaction(it)
-                                            paginationController.refreshAllPages()
+                Column {
+                    Text(
+                        text = "Tap transaction to open menu",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    BGPaginatedList(
+                        onGetKey = { it.id },
+                        onGetItem = {
+                            TransactionItem(
+                                onGetMerchantAccount = onGetMerchantAccount,
+                                onGetSubCategory = onGetSubCategory,
+                                category = category,
+                                transaction = it,
+                                onDelete = {
+                                    // TODO: add a confirmation dialog
+                                    onOpenConfirmSnackbar(
+                                        "Are you sure you want to delete?",
+                                        "Confirm",
+                                        {
+                                            // Perform the delete action
+                                            coroutineScope.launch {
+                                                onDeleteTransaction(it)
+                                                paginationController.refreshAllPages()
+                                            }
                                         }
-                                    }
-                                )
+                                    )
 
-                            })
-                    },
-                    onGetItems = { limit, offset ->
-                        onGetCategoryTransactions(limit, offset)
-                    },
-                    controller = paginationController
-                )
+                                })
+                        },
+                        onGetItems = { limit, offset ->
+                            onGetCategoryTransactions(limit, offset)
+                        },
+                        controller = paginationController
+                    )
+                }
             }
             if (selectedTabIndex.value == 1) {
                 LazyColumn(
@@ -259,24 +284,47 @@ fun CategoryDetailsContent(
 @Composable
 fun TransactionItem(
     onGetMerchantAccount: suspend (TransactionEntity) -> AccountEntity,
+    onGetSubCategory: suspend (Long) -> SubCategoryEntity?,
+    category: CategoryEntity,
     transaction: TransactionEntity,
     onDelete: () -> Unit
 ) {
-    // State to track the expanded state of the menu
     var menuExpanded by remember { mutableStateOf(false) }
 
     var merchantAccount by remember { mutableStateOf(AccountEntity(merchantName = "Sample Merchant")) }
+    var subCategory by remember { mutableStateOf<SubCategoryEntity?>(null) }
 
     LaunchedEffect(key1 = Unit) {
         merchantAccount = onGetMerchantAccount(transaction)
+        subCategory = transaction.subCategoryId?.let { onGetSubCategory(it) }
     }
 
-    Card{
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { menuExpanded = true }
+    ){
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .background(
+                        (subCategory?.displayColor(category, isSystemInDarkTheme())
+                            ?: category.displayColor(isSystemInDarkTheme())),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = subCategory?.displayIcon(category) ?: category.displayIcon(),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(2.dp)
+                )
+            }
             var description = transaction.description
             if (transaction.description.length > 10) {
                 description = description.take(10) +"..."
@@ -291,27 +339,18 @@ fun TransactionItem(
                 Text(text = transaction.timestamp, style = TextStyle(fontSize = 12.sp))
                 Text(text = "Ksh${centsToString(transaction.amount)}", style = MaterialTheme.typography.bodyLarge)
             }
-            Box(modifier = Modifier.weight(1f)) {
-                IconButton(onClick = {
-                    menuExpanded = true
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Menu"
-                    )
-                }
-                // Dropdown menu
+            Box {
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false }
                 ) {
-                    DropdownMenuItem(onClick = {
-                        onDelete()
-                        menuExpanded = false
-                    },
-                        text = {
-                            Text("Delete")
-                        })
+                    DropdownMenuItem(
+                        onClick = {
+                            onDelete()
+                            menuExpanded = false
+                        },
+                        text = { Text("Delete") }
+                    )
                 }
             }
         }
@@ -406,6 +445,7 @@ fun CategoryDetailsContentPreview() {
                 category = sampleCategory,
                 merchantsSummary = sampleMerchantSummaries,
                 onGetMerchantAccount = { AccountEntity(merchantName = "Sample Merchant") },
+                onGetSubCategory = { null },
                 onDeleteTransaction = {},
                 onGetCategoryTransactions = { _, _ -> sampleTransactions },
                 onOpenConfirmSnackbar = { _, _, _ -> }
@@ -417,6 +457,13 @@ fun CategoryDetailsContentPreview() {
 @Preview(showBackground = true)
 @Composable
 fun TransactionItemPreview() {
+    val sampleCategory = CategoryEntity(
+        id = 1,
+        budgetId = 1,
+        name = "Groceries",
+        amount = 150_000,
+        spentAmount = 62_500
+    )
     val sampleTransaction = TransactionEntity(
         id = 1,
         ref = "TXN-003",
@@ -430,6 +477,8 @@ fun TransactionItemPreview() {
         Surface {
             TransactionItem(
                 onGetMerchantAccount = { AccountEntity(merchantName = "Sample Merchant") },
+                onGetSubCategory = { null },
+                category = sampleCategory,
                 transaction = sampleTransaction,
                 onDelete = {}
             )
@@ -440,6 +489,13 @@ fun TransactionItemPreview() {
 @Preview(showBackground = true)
 @Composable
 fun DarkTransactionItemPreview() {
+    val sampleCategory = CategoryEntity(
+        id = 1,
+        budgetId = 1,
+        name = "Groceries",
+        amount = 150_000,
+        spentAmount = 62_500
+    )
     val sampleTransaction = TransactionEntity(
         id = 1,
         ref = "TXN-003",
@@ -453,6 +509,8 @@ fun DarkTransactionItemPreview() {
         Surface {
             TransactionItem(
                 onGetMerchantAccount = { AccountEntity(merchantName = "Sample Merchant") },
+                onGetSubCategory = { null },
+                category = sampleCategory,
                 transaction = sampleTransaction,
                 onDelete = {}
             )

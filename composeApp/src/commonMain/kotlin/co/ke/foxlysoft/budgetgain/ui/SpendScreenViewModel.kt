@@ -7,6 +7,7 @@ import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.AccountType
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.repos.AccountRepository
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
 import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
@@ -51,6 +52,13 @@ class SpendScreenViewModel(
 
     private val _selectableCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
     val selectableCategories: StateFlow<List<CategoryEntity>> = _selectableCategories
+
+    val selectableSubCategories: StateFlow<List<SubCategoryEntity>> = categorySelection.categoryId
+        .flatMapLatest { selectedId ->
+            if (selectedId == null) flowOf(emptyList())
+            else categoryRepository.getSubCategoriesFlow(selectedId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _merchantAccounts = MutableStateFlow<List<AccountEntity>>(emptyList())
     val merchantAccounts: StateFlow<List<AccountEntity>> = _merchantAccounts
@@ -97,7 +105,16 @@ class SpendScreenViewModel(
     }
 
     @Transaction
-    fun spend(onComplete:() -> Unit , onError: (Throwable) -> Unit, ref: String, merchantName: String, description: String, amount: Long, timestamp: String) {
+    fun spend(
+        onComplete: () -> Unit,
+        onError: (Throwable) -> Unit,
+        ref: String,
+        merchantName: String,
+        description: String,
+        amount: Long,
+        timestamp: String,
+        subCategoryId: Long? = null,
+    ) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -142,6 +159,7 @@ class SpendScreenViewModel(
                         debitAccountId = budgetAccount.id,
                         creditAccountId = merchantAccount!!.id,
                         categoryId = currentCategoryProxy.id,
+                        subCategoryId = subCategoryId,
                         amount = amount,
                         timestamp = timestamp,
                     )
