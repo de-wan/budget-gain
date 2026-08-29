@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -123,12 +124,11 @@ class UncategorizedMpesaSmsScreenViewModel(
     private var _searchJob: Job? = null
     // Function to update the search query
     fun updateCategorySearchQuery(query: String) {
-        if (currentBudgetQueryState.value != QueryState.COMPLETE) {
-            return
-        }
-
         _searchJob?.cancel()
         _searchJob = viewModelScope.launch {
+            if (currentBudgetQueryState.value != QueryState.COMPLETE) {
+                currentBudgetQueryState.first { state -> state == QueryState.COMPLETE }
+            }
             if (query.isNotEmpty()) {
                 delay(500)
                 categoryRepository.searchBudgetCategoriesByName(currentBudget.value.id, query).collectLatest {
