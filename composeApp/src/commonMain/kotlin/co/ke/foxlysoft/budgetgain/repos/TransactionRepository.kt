@@ -11,12 +11,21 @@ import kotlinx.datetime.toLocalDateTime
 class TransactionRepository(db: AppDatabase) {
     private val transactionDao = db.transactionDao()
     private val accountDao = db.accountDao()
+    private val subCategoryDao = db.subCategoryDao()
 
-    suspend fun upsertTransaction(transactionEntity: TransactionEntity) : Long = transactionDao.upsert(transactionEntity)
+    suspend fun upsertTransaction(transactionEntity: TransactionEntity): Long {
+        val subCategoryId = transactionEntity.subCategoryId
+        require(subCategoryId == null || subCategoryDao.belongsToCategory(subCategoryId, transactionEntity.categoryId)) {
+            "Subcategory $subCategoryId does not belong to category ${transactionEntity.categoryId}"
+        }
+        return transactionDao.upsert(transactionEntity)
+    }
 
     suspend fun deleteTransaction(transactionEntity: TransactionEntity) = transactionDao.delete(transactionEntity)
 
     fun getCategoryTransactions(categoryId: Long) = transactionDao.getCategoryTransactions(categoryId)
+
+    fun getSubCategoryTransactions(subCategoryId: Long) = transactionDao.getSubCategoryTransactions(subCategoryId)
 
     suspend fun getPagingCategoryTransactions(categoryId: Long, limit: Int, offset: Int) = transactionDao.getPagingCategoryTransactions(categoryId, limit, offset)
 
