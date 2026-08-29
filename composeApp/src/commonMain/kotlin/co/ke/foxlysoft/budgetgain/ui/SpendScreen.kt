@@ -35,6 +35,7 @@ import androidx.compose.ui.zIndex
 import budgetgain.composeapp.generated.resources.Res
 import budgetgain.composeapp.generated.resources.ic_attach_file
 import co.ke.foxlysoft.budgetgain.shared.getLastCopiedText
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.ui.components.BGainOutlineField
 import co.ke.foxlysoft.budgetgain.utils.ErrorStatus
 import co.ke.foxlysoft.budgetgain.utils.MpesaSmsTypes
@@ -69,6 +70,9 @@ fun SpendScreen(
     var merchantAutoCompleteExpanded by remember { mutableStateOf(false) }
 
     val selectableCategories by spendScreenViewModel.selectableCategories.collectAsState()
+    val selectableSubCategories by spendScreenViewModel.selectableSubCategories.collectAsState()
+    var selectedSubCategory by remember { mutableStateOf<SubCategoryEntity?>(null) }
+    var subCategoryExpanded by remember { mutableStateOf(false) }
     var categoryName by remember { mutableStateOf(category?.name ?: "") }
     var categoryNameErrorStatus by remember { mutableStateOf(ErrorStatus(isError = false)) }
     var categoryAutoCompleteExpanded by remember { mutableStateOf(false) }
@@ -78,6 +82,7 @@ fun SpendScreen(
         if (categoryName.isEmpty() && category != null) {
             categoryName = category.name
         }
+        if (selectedSubCategory?.categoryId != category?.id) selectedSubCategory = null
     }
 
     // Preload categories on screen open
@@ -272,6 +277,51 @@ fun SpendScreen(
                         }
                     }
                 }
+                if (selectableSubCategories.isNotEmpty()) {
+                    BGainOutlineField(
+                        modifier = Modifier.fillMaxWidth(),
+                        labelStr = "Subcategory (optional)",
+                        Value = selectedSubCategory?.name ?: "",
+                        errorStatus = ErrorStatus(isError = false),
+                        trailingIcon = {
+                            IconButton(onClick = { subCategoryExpanded = !subCategoryExpanded }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Show subcategories")
+                            }
+                        },
+                        onValueChange = {},
+                    )
+                    Box {
+                        if (subCategoryExpanded) {
+                            Popup(onDismissRequest = { subCategoryExpanded = false }) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)
+                                        .padding(horizontal = 32.dp).zIndex(1f)
+                                ) {
+                                    LazyColumn {
+                                        item {
+                                            TextButton(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                onClick = {
+                                                    selectedSubCategory = null
+                                                    subCategoryExpanded = false
+                                                },
+                                            ) { Text("No subcategory") }
+                                        }
+                                        items(selectableSubCategories) { subCategory ->
+                                            TextButton(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                onClick = {
+                                                    selectedSubCategory = subCategory
+                                                    subCategoryExpanded = false
+                                                },
+                                            ) { Text(subCategory.name) }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 BGainOutlineField(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -430,7 +480,8 @@ fun SpendScreen(
                                 merchant,
                                 description,
                                 amountToCents(amount),
-                                fullDateTime
+                                fullDateTime,
+                                selectedSubCategory?.id,
                             )
                         } catch (e: Exception) {
                             Logger.e("Error spending", e)

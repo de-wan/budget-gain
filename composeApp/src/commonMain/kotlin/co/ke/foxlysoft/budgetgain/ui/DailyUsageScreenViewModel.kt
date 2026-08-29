@@ -3,11 +3,14 @@ package co.ke.foxlysoft.budgetgain.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
+import co.ke.foxlysoft.budgetgain.database.CategoryEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import co.ke.foxlysoft.budgetgain.my_calendar.DayStatus
 import co.ke.foxlysoft.budgetgain.repos.AccountRepository
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
+import co.ke.foxlysoft.budgetgain.repos.CategoryRepository
 import co.ke.foxlysoft.budgetgain.repos.SettingsRepository
 import co.ke.foxlysoft.budgetgain.repos.MpesaSmsRepository
 import co.ke.foxlysoft.budgetgain.repos.TransactionRepository
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -23,12 +27,14 @@ import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.todayIn
 import kotlinx.datetime.yearMonth
+import kotlinx.datetime.toInstant
 import kotlin.time.Clock
 
 class DailyUsageScreenViewModel (
     private val budgetRepository: BudgetRepository,
     private val transactionsRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
+    private val categoryRepository: CategoryRepository,
     private val settingsRepository: SettingsRepository,
     private val mpesaSmsRepository: MpesaSmsRepository
 ): ViewModel() {
@@ -167,7 +173,9 @@ class DailyUsageScreenViewModel (
             }
 
             transactionItemsByDate = transactionsByDate.mapValues { (_, dailyTransactions) ->
-                dailyTransactions.map { transaction ->
+                dailyTransactions
+                    .sortedByDescending { transaction -> transaction.happenedAtMillis() }
+                    .map { transaction ->
                     DailyTransactionUiModel(
                         transaction = transaction,
                         merchantName = merchantNameCache[transaction.creditAccountId]
@@ -276,13 +284,71 @@ class DailyUsageScreenViewModel (
     }
 
     fun refreshSelectedDay() {
+        val selectedDate = _selectedDate.value ?: return
+        val budget = _currentBudget.value.takeIf { it.yearMonth.isNotBlank() } ?: return
+
         uncategorizedLoadedDate = null
         loadUncategorizedTransactions()
-        _currentBudget.value
-            .takeIf { it.yearMonth.isNotBlank() }
-            ?.let { budget ->
-                viewModelScope.launch { computeDayStatuses(budget) }
+        viewModelScope.launch {
+            refreshSelectedDayTransactions(selectedDate, budget)
+        }
+    }
+
+    suspend fun getCategory(categoryId: Long): CategoryEntity {
+        return categoryRepository.getCategory(categoryId)
+    }
+
+    suspend fun getSubCategory(subCategoryId: Long): SubCategoryEntity? {
+        return categoryRepository.getSubCategory(subCategoryId)
+    }
+
+    private fun TransactionEntity.happenedAtMillis(): Long {
+        val normalizedTimestamp = timestamp.trim().replace(' ', 'T')
+        return runCatching { LocalDateTime.parse(normalizedTimestamp) }
+            .map { it.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds() }
+            .getOrElse { Long.MIN_VALUE }
+    }
+
+    private suspend fun refreshSelectedDayTransactions(selectedDate: LocalDate, budget: BudgetEntity) {
+        val selectedDateKey = selectedDate.toString()
+        val selectedTransactions = transactionsRepository.getBudgetTransactions(budget.id)
+            .filter { transaction ->
+                transaction.timestamp.length >= 10 && transaction.timestamp.substring(0, 10) == selectedDateKey
             }
+            .sortedByDescending { transaction -> transaction.happenedAtMillis() }
+
+        val updatedTransactions = mutableListOf<DailyTransactionUiModel>()
+        for (transaction in selectedTransactions) {
+            val account = runCatching { accountRepository.getAccount(transaction.creditAccountId) }
+                .getOrNull()
+            val merchantName = merchantNameCache.getOrPut(transaction.creditAccountId) {
+                account?.merchantName?.takeIf { it.isNotBlank() }
+                    ?: account?.name?.takeIf { it.isNotBlank() }
+                    ?: UNKNOWN_MERCHANT
+            }
+            updatedTransactions += DailyTransactionUiModel(
+                transaction = transaction,
+                merchantName = merchantName
+            )
+        }
+
+        transactionItemsByDate = transactionItemsByDate + (selectedDate to updatedTransactions)
+        _selectedDayTransactions.value = updatedTransactions
+
+        val usedAmount = updatedTransactions.sumOf { it.transaction.amount }
+        val previousSelectedDayStatus = _selectedDayStatus.value
+        val updatedSelectedDayStatus = previousSelectedDayStatus.copy(
+            usedAmount = usedAmount,
+            isUsed = usedAmount > 0,
+            isOverUsed = usedAmount > _dailyUsageInCents.value,
+            overUsedAmount = (usedAmount - _dailyUsageInCents.value).coerceAtLeast(0),
+            carriedForwardAmount = (previousSelectedDayStatus.broughtForwardAmount + _dailyUsageInCents.value - usedAmount),
+            isMovedForward = (previousSelectedDayStatus.broughtForwardAmount + _dailyUsageInCents.value - usedAmount) > 0,
+        )
+        _selectedDayStatus.value = updatedSelectedDayStatus
+        _dayStatus.value = _dayStatus.value.toMutableMap().apply {
+            put(selectedDate, updatedSelectedDayStatus)
+        }
     }
 }
 

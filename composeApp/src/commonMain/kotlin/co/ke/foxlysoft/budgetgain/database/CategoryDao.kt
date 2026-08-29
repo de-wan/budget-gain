@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CategoryDao {
     @Upsert
-    suspend fun upsert(categoryEntity: CategoryEntity)
+    suspend fun upsert(categoryEntity: CategoryEntity): Long
 
     @Delete
     suspend fun delete(categoryEntity: CategoryEntity)
@@ -42,4 +42,7 @@ interface CategoryDao {
 
     @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId AND name = :name")
     suspend fun getBudgetCategoryByName(budgetId: Long, name: String): CategoryEntity
+
+    @Query("SELECT * FROM CategoryEntity WHERE budgetId = :budgetId AND catalogKey = :catalogKey LIMIT 1")
+    suspend fun getBudgetCategoryByCatalogKey(budgetId: Long, catalogKey: String): CategoryEntity?
 }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.CheckCircle
@@ -29,6 +30,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,10 +40,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,17 +64,20 @@ import co.ke.foxlysoft.budgetgain.my_calendar.DayStatus
 import co.ke.foxlysoft.budgetgain.my_calendar.MonthCalendar
 import co.ke.foxlysoft.budgetgain.ui.Theme.BudgetGainTheme
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.todayIn
 import kotlin.math.roundToInt
 import kotlin.time.Clock
+import kotlinx.datetime.toInstant
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.ke.foxlysoft.budgetgain.database.BudgetEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import co.ke.foxlysoft.budgetgain.database.MpesaSmsEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.utils.centsToString
 import co.ke.foxlysoft.budgetgain.utils.amountToCents
 import co.ke.foxlysoft.budgetgain.utils.isValidAmount
@@ -94,10 +102,9 @@ fun DailyUsageScreen(
     val uncategorizedTransactions by dailyUsageScreenViewModel.uncategorizedTransactions.collectAsStateWithLifecycle()
     val isUncategorizedLoading by dailyUsageScreenViewModel.isUncategorizedLoading.collectAsStateWithLifecycle()
     val selectableCategories by categorizationViewModel.selectableCategories.collectAsStateWithLifecycle()
+    val selectableSubCategories by categorizationViewModel.selectableSubCategories.collectAsStateWithLifecycle()
 
-    if (isCalendarLoading) {
-        DailyUsageLoadingScreen()
-    } else {
+    Box(modifier = Modifier.fillMaxSize()) {
         DailyUsageScreenContent(
             budget = budget,
             statusByDate = dayStatusMap,
@@ -113,17 +120,31 @@ fun DailyUsageScreen(
             onLoadUncategorized = dailyUsageScreenViewModel::loadUncategorizedTransactions,
             onIgnoreUncategorized = dailyUsageScreenViewModel::ignoreUncategorizedTransaction,
             selectableCategories = selectableCategories,
+            selectableSubCategories = selectableSubCategories,
             onCategorySearch = categorizationViewModel::updateCategorySearchQuery,
+            onCategorySelected = categorizationViewModel::loadSubCategories,
+            onCreateCustomSubCategory = categorizationViewModel::createCustomSubCategory,
+            onGetCategory = dailyUsageScreenViewModel::getCategory,
+            onGetSubCategory = dailyUsageScreenViewModel::getSubCategory,
             onCategorizeSingle = categorizationViewModel::categorizeSms,
             onCategorizeBulk = categorizationViewModel::categorizeBulkSms,
             onCategorizationComplete = dailyUsageScreenViewModel::refreshSelectedDay
         )
+
+        if (isCalendarLoading) {
+            DailyUsageLoadingOverlay()
+        }
     }
 }
 
 @Composable
-private fun DailyUsageLoadingScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+private fun DailyUsageLoadingOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
+        contentAlignment = Alignment.Center
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
@@ -164,9 +185,14 @@ fun DailyUsageScreenContent(
     onLoadUncategorized: () -> Unit = {},
     onIgnoreUncategorized: (MpesaSmsEntity) -> Unit = {},
     selectableCategories: List<CategoryEntity> = emptyList(),
+    selectableSubCategories: List<SubCategoryEntity> = emptyList(),
     onCategorySearch: (String) -> Unit = {},
-    onCategorizeSingle: suspend (String, MpesaSmsEntity, Boolean) -> Unit = { _, _, _ -> },
-    onCategorizeBulk: suspend (String, Set<Any>, Boolean) -> Unit = { _, _, _ -> },
+    onCategorySelected: (Long) -> Unit = {},
+    onCreateCustomSubCategory: suspend (Long, String) -> SubCategoryEntity = { _, _ -> throw IllegalStateException("Custom subcategory creator not provided") },
+    onGetCategory: suspend (Long) -> CategoryEntity = { throw IllegalStateException("Category lookup not provided") },
+    onGetSubCategory: suspend (Long) -> SubCategoryEntity? = { null },
+    onCategorizeSingle: suspend (String, MpesaSmsEntity, Boolean, Long?) -> Unit = { _, _, _, _ -> },
+    onCategorizeBulk: suspend (String, Set<Any>, Boolean, Long?) -> Unit = { _, _, _, _ -> },
     onCategorizationComplete: () -> Unit = {}
 ) {
     val splitBudgetYearMonth = budget.yearMonth.split("-")
@@ -300,7 +326,12 @@ fun DailyUsageScreenContent(
                 onLoadUncategorized = onLoadUncategorized,
                 onIgnoreUncategorized = onIgnoreUncategorized,
                 selectableCategories = selectableCategories,
+                selectableSubCategories = selectableSubCategories,
                 onCategorySearch = onCategorySearch,
+                onCategorySelected = onCategorySelected,
+                onCreateCustomSubCategory = onCreateCustomSubCategory,
+                onGetCategory = onGetCategory,
+                onGetSubCategory = onGetSubCategory,
                 onCategorizeSingle = onCategorizeSingle,
                 onCategorizeBulk = onCategorizeBulk,
                 onCategorizationComplete = onCategorizationComplete
@@ -584,6 +615,7 @@ private fun DayAmountSummary(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SelectedDayTransactionsCard(
     selectedDate: LocalDate,
@@ -593,9 +625,14 @@ private fun SelectedDayTransactionsCard(
     onLoadUncategorized: () -> Unit,
     onIgnoreUncategorized: (MpesaSmsEntity) -> Unit,
     selectableCategories: List<CategoryEntity>,
+    selectableSubCategories: List<SubCategoryEntity>,
     onCategorySearch: (String) -> Unit,
-    onCategorizeSingle: suspend (String, MpesaSmsEntity, Boolean) -> Unit,
-    onCategorizeBulk: suspend (String, Set<Any>, Boolean) -> Unit,
+    onCategorySelected: (Long) -> Unit,
+    onCreateCustomSubCategory: suspend (Long, String) -> SubCategoryEntity,
+    onGetCategory: suspend (Long) -> CategoryEntity,
+    onGetSubCategory: suspend (Long) -> SubCategoryEntity?,
+    onCategorizeSingle: suspend (String, MpesaSmsEntity, Boolean, Long?) -> Unit,
+    onCategorizeBulk: suspend (String, Set<Any>, Boolean, Long?) -> Unit,
     onCategorizationComplete: () -> Unit
 ) {
     var selectedFilter by remember(selectedDate) {
@@ -605,10 +642,32 @@ private fun SelectedDayTransactionsCard(
     var smsForCategorization by remember(selectedDate) {
         mutableStateOf(emptyList<MpesaSmsEntity>())
     }
+    var pendingIgnoreSms by remember(selectedDate) { mutableStateOf<MpesaSmsEntity?>(null) }
+    val ignoreSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val visibleItemCount = when (selectedFilter) {
         TransactionFilter.CATEGORIZED -> transactions.size
         TransactionFilter.UNCATEGORIZED -> uncategorizedTransactions.size
         TransactionFilter.ALL -> transactions.size + uncategorizedTransactions.size
+    }
+    val timelineItems = remember(transactions, uncategorizedTransactions) {
+        buildList {
+            addAll(
+                transactions.map { transactionItem ->
+                    DayTimelineItem.Categorized(
+                        item = transactionItem,
+                        sortKeyMillis = transactionItem.transaction.happenedAtMillis(),
+                    )
+                }
+            )
+            addAll(
+                uncategorizedTransactions.map { sms ->
+                    DayTimelineItem.Uncategorized(
+                        item = sms,
+                        sortKeyMillis = sms.dateTime,
+                    )
+                }
+            )
+        }.sortedByDescending { it.sortKeyMillis }
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -678,63 +737,134 @@ private fun SelectedDayTransactionsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                if (selectedFilter != TransactionFilter.UNCATEGORIZED) {
-                    transactions.forEach { transactionItem ->
-                        TransactionTile(
-                            transactionItem = transactionItem,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                }
-                if (selectedFilter != TransactionFilter.CATEGORIZED) {
-                    if (selectedSmsIds.isEmpty()) {
-                        Text(
-                            text = "Tap a transaction for options • Hold to select multiple",
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${selectedSmsIds.size} selected",
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                            TextButton(onClick = { selectedSmsIds = emptySet() }) {
-                                Text("Clear")
-                            }
-                            TextButton(
-                                onClick = {
-                                    smsForCategorization = uncategorizedTransactions.filter {
-                                        it.id in selectedSmsIds
-                                    }
-                                }
-                            ) {
-                                Text("Categorize selected")
+                when (selectedFilter) {
+                    TransactionFilter.ALL -> {
+                        timelineItems.forEach { timelineItem ->
+                            when (timelineItem) {
+                                is DayTimelineItem.Categorized -> TransactionTile(
+                                    transactionItem = timelineItem.item,
+                                    onGetCategory = onGetCategory,
+                                    onGetSubCategory = onGetSubCategory,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                                is DayTimelineItem.Uncategorized -> UncategorizedTransactionTile(
+                                    sms = timelineItem.item,
+                                    isSelected = timelineItem.item.id in selectedSmsIds,
+                                    isSelectionMode = selectedSmsIds.isNotEmpty(),
+                                    onSelectionChange = { isSelected ->
+                                        selectedSmsIds = if (isSelected) {
+                                            selectedSmsIds + timelineItem.item.id
+                                        } else {
+                                            selectedSmsIds - timelineItem.item.id
+                                        }
+                                    },
+                                    onCategorize = { smsForCategorization = listOf(timelineItem.item) },
+                                    onIgnore = { pendingIgnoreSms = timelineItem.item },
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
                             }
                         }
                     }
-                    uncategorizedTransactions.forEach { sms ->
-                        UncategorizedTransactionTile(
-                            sms = sms,
-                            isSelected = sms.id in selectedSmsIds,
-                            isSelectionMode = selectedSmsIds.isNotEmpty(),
-                            onSelectionChange = { isSelected ->
-                                selectedSmsIds = if (isSelected) {
-                                    selectedSmsIds + sms.id
-                                } else {
-                                    selectedSmsIds - sms.id
+                    TransactionFilter.CATEGORIZED -> {
+                        transactions.forEach { transactionItem ->
+                            TransactionTile(
+                                transactionItem = transactionItem,
+                                onGetCategory = onGetCategory,
+                                onGetSubCategory = onGetSubCategory,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                    TransactionFilter.UNCATEGORIZED -> {
+                        if (selectedSmsIds.isEmpty()) {
+                            Text(
+                                text = "Tap a transaction for options • Hold to select multiple",
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${selectedSmsIds.size} selected",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                                TextButton(onClick = { selectedSmsIds = emptySet() }) {
+                                    Text("Clear")
                                 }
-                            },
-                            onCategorize = { smsForCategorization = listOf(sms) },
-                            onIgnore = { onIgnoreUncategorized(sms) },
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
+                                TextButton(
+                                    onClick = {
+                                        smsForCategorization = uncategorizedTransactions.filter {
+                                            it.id in selectedSmsIds
+                                        }
+                                    }
+                                ) {
+                                    Text("Categorize selected")
+                                }
+                            }
+                        }
+                        uncategorizedTransactions.forEach { sms ->
+                            UncategorizedTransactionTile(
+                                sms = sms,
+                                isSelected = sms.id in selectedSmsIds,
+                                isSelectionMode = selectedSmsIds.isNotEmpty(),
+                                onSelectionChange = { isSelected ->
+                                    selectedSmsIds = if (isSelected) {
+                                        selectedSmsIds + sms.id
+                                    } else {
+                                        selectedSmsIds - sms.id
+                                    }
+                                },
+                                onCategorize = { smsForCategorization = listOf(sms) },
+                                onIgnore = { pendingIgnoreSms = sms },
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pendingIgnoreSms?.let { sms ->
+        ModalBottomSheet(
+            onDismissRequest = { pendingIgnoreSms = null },
+            sheetState = ignoreSheetState
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(
+                    text = "Ignore transaction?",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "This will remove the uncategorized transaction from Daily Usage.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = { pendingIgnoreSms = null }
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onIgnoreUncategorized(sms)
+                            pendingIgnoreSms = null
+                        }
+                    ) {
+                        Text("Ignore")
                     }
                 }
             }
@@ -751,16 +881,20 @@ private fun SelectedDayTransactionsCard(
                 getMerchantNameFromSms(firstSms)
             },
             selectableCategories = selectableCategories,
+            selectableSubCategories = selectableSubCategories,
             onCategorySearch = onCategorySearch,
+            onCategorySelected = onCategorySelected,
+            onCreateCustomSubCategory = onCreateCustomSubCategory,
             onDismiss = { smsForCategorization = emptyList() },
-            onSubmit = { categoryName, categorizeSimilar ->
+            onSubmit = { category, subCategory, categorizeSimilar ->
                 if (smsForCategorization.size == 1) {
-                    onCategorizeSingle(categoryName, firstSms, categorizeSimilar)
+                    onCategorizeSingle(category.name, firstSms, categorizeSimilar, subCategory?.id)
                 } else {
                     onCategorizeBulk(
-                        categoryName,
+                        category.name,
                         smsForCategorization.map { it.id }.toSet(),
-                        categorizeSimilar
+                        categorizeSimilar,
+                        subCategory?.id,
                     )
                 }
             },
@@ -774,6 +908,27 @@ private fun SelectedDayTransactionsCard(
     }
 }
 
+private sealed interface DayTimelineItem {
+    val sortKeyMillis: Long
+
+    data class Categorized(
+        val item: DailyTransactionUiModel,
+        override val sortKeyMillis: Long,
+    ) : DayTimelineItem
+
+    data class Uncategorized(
+        val item: MpesaSmsEntity,
+        override val sortKeyMillis: Long,
+    ) : DayTimelineItem
+}
+
+private fun TransactionEntity.happenedAtMillis(): Long {
+    val normalizedTimestamp = timestamp.trim().replace(' ', 'T')
+    return runCatching { LocalDateTime.parse(normalizedTimestamp) }
+        .map { it.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds() }
+        .getOrElse { Long.MIN_VALUE }
+}
+
 private enum class TransactionFilter(val label: String) {
     CATEGORIZED("Categorized"),
     UNCATEGORIZED("Uncategorized"),
@@ -783,10 +938,32 @@ private enum class TransactionFilter(val label: String) {
 @Composable
 private fun TransactionTile(
     transactionItem: DailyTransactionUiModel,
+    onGetCategory: suspend (Long) -> CategoryEntity,
+    onGetSubCategory: suspend (Long) -> SubCategoryEntity?,
     modifier: Modifier = Modifier
 ) {
     val transaction = transactionItem.transaction
     val merchantName = transactionItem.merchantName
+    var category by remember { mutableStateOf<CategoryEntity?>(null) }
+    var subCategory by remember { mutableStateOf<SubCategoryEntity?>(null) }
+    val resolvedCategory = category
+    val circleColor = when {
+        resolvedCategory != null && subCategory != null ->
+            subCategory!!.displayColor(resolvedCategory, false)
+        resolvedCategory != null -> resolvedCategory.displayColor(false)
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val circleIcon = when {
+        resolvedCategory != null && subCategory != null ->
+            subCategory!!.displayIcon(resolvedCategory)
+        resolvedCategory != null -> resolvedCategory.displayIcon()
+        else -> Icons.Default.Category
+    }
+
+    androidx.compose.runtime.LaunchedEffect(transaction.id) {
+        category = onGetCategory(transaction.categoryId)
+        subCategory = transaction.subCategoryId?.let { onGetSubCategory(it) }
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -801,19 +978,14 @@ private fun TransactionTile(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    .background(circleColor, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = merchantName
-                        .trim()
-                        .firstOrNull()
-                        ?.uppercaseChar()
-                        ?.toString()
-                        ?: "T",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = circleIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))

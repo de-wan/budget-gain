@@ -31,7 +31,7 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
-    fun migrate14To18PreservesBudgetAndSmsData() {
+    fun migrate14To19PreservesBudgetAndSmsData() {
         runBlocking {
             migrationHelper.createDatabase(TEST_DATABASE, 14).apply {
             execSQL(
@@ -54,6 +54,13 @@ class AppDatabaseMigrationTest {
                     'name', 'Test Merchant', '', '', 0, 97500)
                 """.trimIndent()
             )
+            execSQL(
+                """
+                INSERT INTO CategoryEntity (
+                    id, budgetId, name, amount, spentAmount, createdAt
+                ) VALUES (1, 1, 'Food', 50000, 10000, 1706745600)
+                """.trimIndent()
+            )
             close()
         }
 
@@ -70,6 +77,7 @@ class AppDatabaseMigrationTest {
                 assertEquals(100_000L, budget.initialBalance)
                 assertEquals("TESTREF", sms.ref)
                 assertFalse(sms.isIgnored)
+                assertEquals(DEFAULT_CATEGORY_ICON_KEY, database.categoryDao().getCategory(1).iconKey)
             } finally {
                 database.close()
             }

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Transaction
 import co.ke.foxlysoft.budgetgain.database.AccountEntity
 import co.ke.foxlysoft.budgetgain.database.CategoryEntity
+import co.ke.foxlysoft.budgetgain.database.SubCategoryEntity
 import co.ke.foxlysoft.budgetgain.database.TransactionEntity
 import co.ke.foxlysoft.budgetgain.repos.AccountRepository
 import co.ke.foxlysoft.budgetgain.repos.BudgetRepository
@@ -57,6 +58,10 @@ class CategoryDetailsScreenViewModel(
 
     suspend fun getMerchantAccount(transaction: TransactionEntity): AccountEntity {
         return accountRepository.getAccount(transaction.creditAccountId)
+    }
+
+    suspend fun getSubCategory(subCategoryId: Long): SubCategoryEntity? {
+        return categoryRepository.getSubCategory(subCategoryId)
     }
 
     @Transaction
