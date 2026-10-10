@@ -157,7 +157,7 @@ class DailyUsageScreenViewModel (
 
                 val date = LocalDate(year, month, dayOfMonth)
                 transactionsByDate.getOrPut(date, ::mutableListOf).add(transaction)
-                usedAmountByDay[dayOfMonth] += transaction.amount
+                usedAmountByDay[dayOfMonth] += transaction.dailyUsageAmount()
                 merchantAccountIds += transaction.creditAccountId
             }
 
@@ -197,34 +197,7 @@ class DailyUsageScreenViewModel (
                 (spentToDate + elapsedDays - 1) / elapsedDays
             }
 
-            var carriedForwardAmount = 0L
-            val statusByDate = buildMap {
-                for (dayOfMonth in 1..daysInMonth) {
-                    val date = LocalDate(year, month, dayOfMonth)
-                    val usedAmount = usedAmountByDay[dayOfMonth]
-                    val broughtForwardAmount = carriedForwardAmount
-                    val availableAmount = broughtForwardAmount + dailyUsageLimit
-                    val isUsed = usedAmount > 0
-                    val isOverUsed = usedAmount > dailyUsageLimit
-
-                    carriedForwardAmount = availableAmount - usedAmount
-
-                    put(
-                        date,
-                        DayStatus(
-                            broughtForwardAmount = broughtForwardAmount,
-                            isMovedForward = carriedForwardAmount > 0,
-                            carriedForwardAmount = carriedForwardAmount,
-                            isUsed = isUsed,
-                            usedAmount = usedAmount,
-                            isOverUsed = isOverUsed,
-                            overUsedAmount = (usedAmount - dailyUsageLimit).coerceAtLeast(0)
-                        )
-                    )
-                }
-            }
-
-            _dayStatus.value = statusByDate
+            _dayStatus.value = calculateDailyUsageStatuses(year, month, usedAmountByDay, dailyUsageLimit)
             _selectedDate.value?.let(::selectDay)
         } finally {
             _isCalendarLoading.value = false
@@ -284,14 +257,19 @@ class DailyUsageScreenViewModel (
     }
 
     fun refreshSelectedDay() {
-        val selectedDate = _selectedDate.value ?: return
+        _selectedDate.value ?: return
         val budget = _currentBudget.value.takeIf { it.yearMonth.isNotBlank() } ?: return
 
         uncategorizedLoadedDate = null
         loadUncategorizedTransactions()
         viewModelScope.launch {
-            refreshSelectedDayTransactions(selectedDate, budget)
+            computeDayStatuses(budget)
         }
+    }
+
+    suspend fun setExcludedFromDailyUsage(transaction: TransactionEntity) {
+        transactionsRepository.setExcludedFromDailyUsage(transaction.id, !transaction.excludedFromDailyUsage)
+        _currentBudget.value.takeIf { it.yearMonth.isNotBlank() }?.let { computeDayStatuses(it) }
     }
 
     suspend fun getCategory(categoryId: Long): CategoryEntity {
@@ -308,51 +286,47 @@ class DailyUsageScreenViewModel (
             .map { it.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds() }
             .getOrElse { Long.MIN_VALUE }
     }
-
-    private suspend fun refreshSelectedDayTransactions(selectedDate: LocalDate, budget: BudgetEntity) {
-        val selectedDateKey = selectedDate.toString()
-        val selectedTransactions = transactionsRepository.getBudgetTransactions(budget.id)
-            .filter { transaction ->
-                transaction.timestamp.length >= 10 && transaction.timestamp.substring(0, 10) == selectedDateKey
-            }
-            .sortedByDescending { transaction -> transaction.happenedAtMillis() }
-
-        val updatedTransactions = mutableListOf<DailyTransactionUiModel>()
-        for (transaction in selectedTransactions) {
-            val account = runCatching { accountRepository.getAccount(transaction.creditAccountId) }
-                .getOrNull()
-            val merchantName = merchantNameCache.getOrPut(transaction.creditAccountId) {
-                account?.merchantName?.takeIf { it.isNotBlank() }
-                    ?: account?.name?.takeIf { it.isNotBlank() }
-                    ?: UNKNOWN_MERCHANT
-            }
-            updatedTransactions += DailyTransactionUiModel(
-                transaction = transaction,
-                merchantName = merchantName
-            )
-        }
-
-        transactionItemsByDate = transactionItemsByDate + (selectedDate to updatedTransactions)
-        _selectedDayTransactions.value = updatedTransactions
-
-        val usedAmount = updatedTransactions.sumOf { it.transaction.amount }
-        val previousSelectedDayStatus = _selectedDayStatus.value
-        val updatedSelectedDayStatus = previousSelectedDayStatus.copy(
-            usedAmount = usedAmount,
-            isUsed = usedAmount > 0,
-            isOverUsed = usedAmount > _dailyUsageInCents.value,
-            overUsedAmount = (usedAmount - _dailyUsageInCents.value).coerceAtLeast(0),
-            carriedForwardAmount = (previousSelectedDayStatus.broughtForwardAmount + _dailyUsageInCents.value - usedAmount),
-            isMovedForward = (previousSelectedDayStatus.broughtForwardAmount + _dailyUsageInCents.value - usedAmount) > 0,
-        )
-        _selectedDayStatus.value = updatedSelectedDayStatus
-        _dayStatus.value = _dayStatus.value.toMutableMap().apply {
-            put(selectedDate, updatedSelectedDayStatus)
-        }
-    }
 }
 
 data class DailyTransactionUiModel(
     val transaction: TransactionEntity,
     val merchantName: String
 )
+
+internal fun TransactionEntity.dailyUsageAmount(): Long =
+    if (excludedFromDailyUsage) 0L else amount
+
+internal fun calculateDailyUsageStatuses(
+    year: Int,
+    month: Int,
+    usedAmountByDay: LongArray,
+    dailyUsageLimit: Long,
+): Map<LocalDate, DayStatus> {
+    val daysInMonth = usedAmountByDay.lastIndex
+    var carriedForwardAmount = 0L
+    return buildMap {
+        for (dayOfMonth in 1..daysInMonth) {
+            val date = LocalDate(year, month, dayOfMonth)
+            val usedAmount = usedAmountByDay[dayOfMonth]
+            val broughtForwardAmount = carriedForwardAmount
+            val availableAmount = broughtForwardAmount + dailyUsageLimit
+            val isUsed = usedAmount > 0
+            val isOverUsed = usedAmount > dailyUsageLimit
+
+            carriedForwardAmount = availableAmount - usedAmount
+
+            put(
+                date,
+                DayStatus(
+                    broughtForwardAmount = broughtForwardAmount,
+                    isMovedForward = carriedForwardAmount > 0,
+                    carriedForwardAmount = carriedForwardAmount,
+                    isUsed = isUsed,
+                    usedAmount = usedAmount,
+                    isOverUsed = isOverUsed,
+                    overUsedAmount = (usedAmount - dailyUsageLimit).coerceAtLeast(0)
+                )
+            )
+        }
+    }
+}

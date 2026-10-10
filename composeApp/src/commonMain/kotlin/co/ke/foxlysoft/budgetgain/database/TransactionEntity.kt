@@ -1,5 +1,6 @@
 package co.ke.foxlysoft.budgetgain.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -27,6 +28,8 @@ data class TransactionEntity(
     val creditAccountId: Long = 0,
     val categoryId: Long = 0,
     val subCategoryId: Long? = null,
+    @ColumnInfo(defaultValue = "0")
+    val excludedFromDailyUsage: Boolean = false,
     val amount: Long = 0, // in cents
     val createdAt: Long = Clock.System.now().epochSeconds,
     val timestamp: String = "", // yyyy-MM-dd HH:mm

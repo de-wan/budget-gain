@@ -23,6 +23,47 @@ class AppDatabaseMigrationTest {
         AppDatabase::class.java,
     )
 
+    @Test
+    fun migrate19To20PreservesTransactionsAndPersistsExclusion() = runBlocking {
+        migrationHelper.createDatabase(TEST_DATABASE, 19).apply {
+            execSQL(
+                """
+                INSERT INTO TransactionEntity (
+                    id, ref, type, description, budgetId, debitAccountId,
+                    creditAccountId, categoryId, subCategoryId, amount, createdAt, timestamp
+                ) VALUES (1, 'DAILYREF', 'CREDIT', '', 1, 0, 0, 1, NULL, 2500, 0, '2026-10-01 12:00')
+                """.trimIndent()
+            )
+            close()
+        }
+        migrationHelper.runMigrationsAndValidate(TEST_DATABASE, 20, true, MIGRATION_19_20).close()
+        fun openDatabase() = Room.databaseBuilder<AppDatabase>(context, TEST_DATABASE)
+            .addMigrations(*APP_DATABASE_MIGRATIONS)
+            .openHelperFactory(FrameworkSQLiteOpenHelperFactory())
+            .build()
+        openDatabase().let { database ->
+            try {
+                val transaction = database.transactionDao().getByRef("DAILYREF")!!
+                assertFalse(transaction.excludedFromDailyUsage)
+                assertEquals(2500L, transaction.amount)
+                database.transactionDao().setExcludedFromDailyUsage(transaction.id, true)
+            } finally {
+                database.close()
+            }
+        }
+        openDatabase().let { database ->
+            try {
+                val transaction = database.transactionDao().getByRef("DAILYREF")!!
+                assertEquals(true, transaction.excludedFromDailyUsage)
+                assertEquals(2500L, transaction.amount)
+                database.transactionDao().setExcludedFromDailyUsage(transaction.id, false)
+                assertFalse(database.transactionDao().getByRef("DAILYREF")!!.excludedFromDailyUsage)
+            } finally {
+                database.close()
+            }
+        }
+    }
+
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @After
@@ -31,7 +72,7 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
-    fun migrate14To19PreservesBudgetAndSmsData() {
+    fun migrate14To20PreservesBudgetAndSmsData() {
         runBlocking {
             migrationHelper.createDatabase(TEST_DATABASE, 14).apply {
             execSQL(

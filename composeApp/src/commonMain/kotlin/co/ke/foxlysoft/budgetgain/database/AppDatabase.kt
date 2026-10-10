@@ -9,7 +9,7 @@ import androidx.room.migration.Migration
 //import androidx.room.RoomDatabaseConstructor
 
 @Database(entities = [UserEntity::class, SettingsEntity::class, BudgetEntity::class, CategoryEntity::class,
-    AccountEntity::class, TransactionEntity::class, SubCategoryEntity::class, MpesaSmsEntity::class], version = 19)
+    AccountEntity::class, TransactionEntity::class, SubCategoryEntity::class, MpesaSmsEntity::class], version = 20)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao

@@ -109,7 +109,13 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
     }
 }
 
-val APP_DATABASE_MIGRATIONS = arrayOf(MIGRATION_14_18, MIGRATION_15_18, MIGRATION_16_18, MIGRATION_18_19)
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.exec("ALTER TABLE `TransactionEntity` ADD COLUMN `excludedFromDailyUsage` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val APP_DATABASE_MIGRATIONS = arrayOf(MIGRATION_14_18, MIGRATION_15_18, MIGRATION_16_18, MIGRATION_18_19, MIGRATION_19_20)
 
 private fun SQLiteConnection.addIsIgnoredColumn() {
     exec("ALTER TABLE `MpesaSmsEntity` ADD COLUMN `isIgnored` INTEGER NOT NULL DEFAULT 0")

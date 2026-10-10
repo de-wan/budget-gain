@@ -21,6 +21,9 @@ class TransactionRepository(db: AppDatabase) {
         return transactionDao.upsert(transactionEntity)
     }
 
+    suspend fun setExcludedFromDailyUsage(transactionId: Long, excluded: Boolean) =
+        transactionDao.setExcludedFromDailyUsage(transactionId, excluded)
+
     suspend fun deleteTransaction(transactionEntity: TransactionEntity) = transactionDao.delete(transactionEntity)
 
     fun getCategoryTransactions(categoryId: Long) = transactionDao.getCategoryTransactions(categoryId)

@@ -11,6 +11,9 @@ interface TransactionDao {
     @Upsert
     suspend fun upsert(transactionEntity: TransactionEntity): Long
 
+    @Query("UPDATE TransactionEntity SET excludedFromDailyUsage = :excluded WHERE id = :transactionId")
+    suspend fun setExcludedFromDailyUsage(transactionId: Long, excluded: Boolean)
+
     @Delete
     suspend fun delete(transactionEntity: TransactionEntity)
 

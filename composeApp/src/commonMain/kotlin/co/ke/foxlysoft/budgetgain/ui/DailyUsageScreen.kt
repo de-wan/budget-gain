@@ -49,6 +49,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -124,6 +127,7 @@ fun DailyUsageScreen(
             onCategorySearch = categorizationViewModel::updateCategorySearchQuery,
             onCategorySelected = categorizationViewModel::loadSubCategories,
             onCreateCustomSubCategory = categorizationViewModel::createCustomSubCategory,
+            onSetExcludedFromDailyUsage = dailyUsageScreenViewModel::setExcludedFromDailyUsage,
             onGetCategory = dailyUsageScreenViewModel::getCategory,
             onGetSubCategory = dailyUsageScreenViewModel::getSubCategory,
             onCategorizeSingle = categorizationViewModel::categorizeSms,
@@ -189,6 +193,7 @@ fun DailyUsageScreenContent(
     onCategorySearch: (String) -> Unit = {},
     onCategorySelected: (Long) -> Unit = {},
     onCreateCustomSubCategory: suspend (Long, String) -> SubCategoryEntity = { _, _ -> throw IllegalStateException("Custom subcategory creator not provided") },
+    onSetExcludedFromDailyUsage: suspend (TransactionEntity) -> Unit = {},
     onGetCategory: suspend (Long) -> CategoryEntity = { throw IllegalStateException("Category lookup not provided") },
     onGetSubCategory: suspend (Long) -> SubCategoryEntity? = { null },
     onCategorizeSingle: suspend (String, MpesaSmsEntity, Boolean, Long?) -> Unit = { _, _, _, _ -> },
@@ -330,6 +335,7 @@ fun DailyUsageScreenContent(
                 onCategorySearch = onCategorySearch,
                 onCategorySelected = onCategorySelected,
                 onCreateCustomSubCategory = onCreateCustomSubCategory,
+                onSetExcludedFromDailyUsage = onSetExcludedFromDailyUsage,
                 onGetCategory = onGetCategory,
                 onGetSubCategory = onGetSubCategory,
                 onCategorizeSingle = onCategorizeSingle,
@@ -629,6 +635,7 @@ private fun SelectedDayTransactionsCard(
     onCategorySearch: (String) -> Unit,
     onCategorySelected: (Long) -> Unit,
     onCreateCustomSubCategory: suspend (Long, String) -> SubCategoryEntity,
+    onSetExcludedFromDailyUsage: suspend (TransactionEntity) -> Unit,
     onGetCategory: suspend (Long) -> CategoryEntity,
     onGetSubCategory: suspend (Long) -> SubCategoryEntity?,
     onCategorizeSingle: suspend (String, MpesaSmsEntity, Boolean, Long?) -> Unit,
@@ -743,6 +750,7 @@ private fun SelectedDayTransactionsCard(
                             when (timelineItem) {
                                 is DayTimelineItem.Categorized -> TransactionTile(
                                     transactionItem = timelineItem.item,
+                                    onSetExcludedFromDailyUsage = onSetExcludedFromDailyUsage,
                                     onGetCategory = onGetCategory,
                                     onGetSubCategory = onGetSubCategory,
                                     modifier = Modifier.padding(vertical = 4.dp)
@@ -769,6 +777,7 @@ private fun SelectedDayTransactionsCard(
                         transactions.forEach { transactionItem ->
                             TransactionTile(
                                 transactionItem = transactionItem,
+                                onSetExcludedFromDailyUsage = onSetExcludedFromDailyUsage,
                                 onGetCategory = onGetCategory,
                                 onGetSubCategory = onGetSubCategory,
                                 modifier = Modifier.padding(vertical = 4.dp)
@@ -935,14 +944,45 @@ private enum class TransactionFilter(val label: String) {
     ALL("All")
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionTile(
     transactionItem: DailyTransactionUiModel,
+    onSetExcludedFromDailyUsage: suspend (TransactionEntity) -> Unit,
     onGetCategory: suspend (Long) -> CategoryEntity,
     onGetSubCategory: suspend (Long) -> SubCategoryEntity?,
     modifier: Modifier = Modifier
 ) {
     val transaction = transactionItem.transaction
+    val scope = rememberCoroutineScope()
+    var isMenuExpanded by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf(false) }
+    fun toggleExclusion() {
+        if (isSaving) return
+        isSaving = true
+        saveError = false
+        scope.launch {
+            try {
+                onSetExcludedFromDailyUsage(transaction)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                saveError = true
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+    if (saveError) {
+        AlertDialog(
+            onDismissRequest = { saveError = false },
+            title = { Text("Could not update daily usage") },
+            text = { Text("Please try again.") },
+            confirmButton = { TextButton(onClick = { toggleExclusion() }) { Text("Retry") } },
+            dismissButton = { TextButton(onClick = { saveError = false }) { Text("Dismiss") } }
+        )
+    }
     val merchantName = transactionItem.merchantName
     var category by remember { mutableStateOf<CategoryEntity?>(null) }
     var subCategory by remember { mutableStateOf<SubCategoryEntity?>(null) }
@@ -966,7 +1006,11 @@ private fun TransactionTile(
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().combinedClickable(
+            enabled = !isSaving,
+            onClickLabel = "Show transaction options",
+            onClick = { isMenuExpanded = true }
+        ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.38f)
         )
@@ -1020,11 +1064,28 @@ private fun TransactionTile(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                TransactionStatusIcon(
-                    icon = Icons.Default.CheckCircle,
-                    color = MaterialTheme.colorScheme.primary,
-                    meaning = "Categorized transaction"
-                )
+                Row {
+                    TransactionStatusIcon(
+                        icon = Icons.Default.CheckCircle,
+                        color = MaterialTheme.colorScheme.primary,
+                        meaning = "Categorized transaction"
+                    )
+                    TransactionStatusIcon(
+                        icon = Icons.Default.CalendarToday,
+                        color = if (transaction.excludedFromDailyUsage) Color(0xFFE53935) else Color(0xFF2196F3),
+                        meaning = if (transaction.excludedFromDailyUsage) "Excluded from daily usage" else "Included in daily usage"
+                    )
+                }
+                DropdownMenu(expanded = isMenuExpanded, onDismissRequest = { isMenuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (transaction.excludedFromDailyUsage) "Include in daily usage" else "Exclude from daily usage") },
+                        enabled = !isSaving,
+                        onClick = {
+                            isMenuExpanded = false
+                            toggleExclusion()
+                        }
+                    )
+                }
             }
         }
     }
@@ -1235,6 +1296,7 @@ private fun DailyUsageScreenPreviewContent(darkTheme: Boolean) {
             merchantName = "Java House",
             transaction = TransactionEntity(
                 ref = "QH82K2",
+                excludedFromDailyUsage = true,
                 amount = 3_850,
                 timestamp = "2026-02-01 14:05"
             )
