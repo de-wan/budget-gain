@@ -643,7 +643,7 @@ private fun SelectedDayTransactionsCard(
     onCategorizationComplete: () -> Unit
 ) {
     var selectedFilter by remember(selectedDate) {
-        mutableStateOf(TransactionFilter.CATEGORIZED)
+        mutableStateOf(TransactionFilter.ALL)
     }
     var selectedSmsIds by remember(selectedDate) { mutableStateOf(emptySet<Long>()) }
     var smsForCategorization by remember(selectedDate) {
@@ -939,9 +939,9 @@ private fun TransactionEntity.happenedAtMillis(): Long {
 }
 
 private enum class TransactionFilter(val label: String) {
-    CATEGORIZED("Categorized"),
+    ALL("All"),
     UNCATEGORIZED("Uncategorized"),
-    ALL("All")
+    CATEGORIZED("Categorized")
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1247,7 +1247,7 @@ private fun UncategorizedTransactionTile(
     }
 }
 
-@Preview(name = "Daily usage - Light")
+@Preview(name = "Daily usage - Light", heightDp = 1200)
 @Composable
 fun LightDailyUsageScreenPreview() {
     DailyUsageScreenPreviewContent(darkTheme = false)
